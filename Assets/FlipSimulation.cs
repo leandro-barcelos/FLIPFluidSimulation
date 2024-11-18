@@ -82,7 +82,9 @@ public class FlipSimulation : MonoBehaviour
         IntegrateParticles(Time.fixedDeltaTime);
 
         // TODO: push particles apart
-        // TODO: handle collisions
+
+        HandleParticleCollisions(); // TODO: handle obstacle collisions
+
         // TODO: transfer velocities
         // TODO: update particle density
         // TODO: solve incompressibility
@@ -207,4 +209,26 @@ public class FlipSimulation : MonoBehaviour
         updateMeshPropertiesShader.Dispatch(0, Mathf.CeilToInt((float)_particleDimensions.x / NumThreads), Mathf.CeilToInt((float)_particleDimensions.y / NumThreads), Mathf.CeilToInt((float)_particleDimensions.z / NumThreads));
     }
 
+    private void HandleParticleCollisions()
+    {
+        var maxX = transform.position.x + transform.localScale.x / 2 - _particleRadius;
+        var minX = transform.position.x - transform.localScale.x / 2 + _particleRadius;
+        var maxY = transform.position.y + transform.localScale.y / 2 - _particleRadius;
+        var minY = transform.position.y - transform.localScale.y / 2 + _particleRadius;
+        var maxZ = transform.position.z + transform.localScale.z / 2 - _particleRadius;
+        var minZ = transform.position.z - transform.localScale.z / 2 + _particleRadius;
+
+        handleParticleCollisionsShader.SetBuffer(0, ShaderIDs.ParticlePos, _particlePosBuffer);
+        handleParticleCollisionsShader.SetBuffer(0, ShaderIDs.ParticleVel, _particleVelBuffer);
+
+        handleParticleCollisionsShader.SetVector(ShaderIDs.Size, (Vector3) _particleDimensions);
+        handleParticleCollisionsShader.SetFloat(ShaderIDs.MaxX, maxX);
+        handleParticleCollisionsShader.SetFloat(ShaderIDs.MinX, minX);
+        handleParticleCollisionsShader.SetFloat(ShaderIDs.MaxY, maxY);
+        handleParticleCollisionsShader.SetFloat(ShaderIDs.MinY, minY);
+        handleParticleCollisionsShader.SetFloat(ShaderIDs.MaxZ, maxZ);
+        handleParticleCollisionsShader.SetFloat(ShaderIDs.MinZ, minZ);
+
+        handleParticleCollisionsShader.Dispatch(0, Mathf.CeilToInt((float)_particleDimensions.x / NumThreads), Mathf.CeilToInt((float)_particleDimensions.y / NumThreads), Mathf.CeilToInt((float)_particleDimensions.z / NumThreads));
+    }
 }

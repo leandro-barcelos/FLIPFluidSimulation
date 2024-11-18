@@ -1,0 +1,69 @@
+#define NUM_THREADS 8
+
+#pragma enable_d3d11_debug_symbols
+
+// Buffers
+RWStructuredBuffer<float3> _ParticlePos;
+RWStructuredBuffer<float3> _ParticleVel;
+
+// Parameters
+float3 _Size;
+float _MaxX;
+float _MinX;
+float _MaxY;
+float _MinY;
+float _MaxZ;
+float _MinZ;
+
+// Kernel
+#pragma kernel CSMain
+
+[numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    if (any(id >= _Size))
+    {
+        return;
+    }
+
+    int index = id.x + id.y * _Size.x + id.z * _Size.x * _Size.y;
+
+    float3 pos = _ParticlePos[index];
+    float3 vel = _ParticleVel[index];
+
+    if (pos.x > _MaxX)
+    {
+        pos.x = _MaxX;
+        vel.x = 0.0;
+    }
+    else if (pos.x < _MinX)
+    {
+        pos.x = _MinX;
+        vel.x = 0.0;
+    }
+
+    if (pos.y > _MaxY)
+    {
+        pos.y = _MaxY;
+        vel.y = 0.0;
+    }
+    else if (pos.y < _MinY)
+    {
+        pos.y = _MinY;
+        vel.y = 0.0;
+    }
+
+    if (pos.z > _MaxZ)
+    {
+        pos.z = _MaxZ;
+        vel.z = 0.0;
+    }
+    else if (pos.z < _MinZ)
+    {
+        pos.z = _MinZ;
+        vel.z = 0.0;
+    }
+
+    _ParticleVel[index] = vel;
+    _ParticlePos[index] = pos;
+}
