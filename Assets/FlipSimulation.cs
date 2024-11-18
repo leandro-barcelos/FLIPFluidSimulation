@@ -1,4 +1,6 @@
+using System;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Serialization;
 
 public class FlipSimulation : MonoBehaviour
@@ -43,6 +45,7 @@ public class FlipSimulation : MonoBehaviour
     public ComputeShader integrateParticlesShader;
     public ComputeShader updateParticlePropertiesShader;
     public ComputeShader handleParticleCollisionsShader;
+    public ComputeShader transferVelocityToParticleShader;
 
     [Header("Rendering")]
     public float occlusionRange;
@@ -54,6 +57,8 @@ public class FlipSimulation : MonoBehaviour
 
     //  Grid
     private float _cellSpacing;
+    private Vector3Int _gridDimensions;
+    private RenderTexture _gridVelTexture;
 
     // Particles
     private int _maxParticles;
@@ -90,7 +95,9 @@ public class FlipSimulation : MonoBehaviour
         // TODO: transfer velocities
         // TODO: update particle density
         // TODO: solve incompressibility
-        // TODO: transfer velocities back
+
+        TransferVelocityToParticle();
+
         // TODO: update grid properties
 
         UpdateMeshProperties(); // TODO: Update colors as well
@@ -103,6 +110,7 @@ public class FlipSimulation : MonoBehaviour
         _particleVelBuffer.Release();
         _meshPropertiesBuffer.Release();
         _argsBuffer.Release();
+        _gridVelTexture.Release();
     }
 
     private void InitializeRendering()
@@ -115,6 +123,14 @@ public class FlipSimulation : MonoBehaviour
     {
         var scale = transform.localScale;
         _cellSpacing = scale.y / gridResolution;
+        _gridDimensions = new Vector3Int(
+            Mathf.FloorToInt(scale.x / _cellSpacing) + 1,
+            Mathf.FloorToInt(scale.y / _cellSpacing) + 1,
+            Mathf.FloorToInt(scale.z / _cellSpacing) + 1
+        );
+        _cellSpacing = Mathf.Max(scale.x / _gridDimensions.x, scale.y / _gridDimensions.y, scale.z / _gridDimensions.z);
+
+        _gridVelTexture = InitializeTexture(4);
     }
 
     private void InitializeParticles()
@@ -189,12 +205,36 @@ public class FlipSimulation : MonoBehaviour
         _particlePosBuffer.SetData(particlePos);
     }
 
+    private RenderTexture InitializeTexture(int formatSize)
+    {
+        var format = formatSize switch
+        {
+            1 => RenderTextureFormat.RHalf,
+            4 => RenderTextureFormat.ARGBHalf,
+            _ => throw new Exception("Invalid number of dimensions for the texture"),
+        };
+
+
+        var texture = new RenderTexture(_gridDimensions.x, _gridDimensions.y, 0, format)
+        {
+            dimension = TextureDimension.Tex3D,
+            volumeDepth = _gridDimensions.z,
+            enableRandomWrite = true,
+            filterMode = FilterMode.Point,
+            wrapMode = TextureWrapMode.Clamp
+        };
+
+        texture.Create();
+
+        return texture;
+    }
+
     private void IntegrateParticles(float dt)
     {
         integrateParticlesShader.SetFloat(ShaderIDs.TimeStep, dt);
         integrateParticlesShader.SetFloat(ShaderIDs.Gravity, gravityAcceleration);
 
-        integrateParticlesShader.SetVector(ShaderIDs.Size, (Vector3) _particleDimensions);
+        integrateParticlesShader.SetVector(ShaderIDs.ParticleSize, (Vector3) _particleDimensions);
 
         integrateParticlesShader.SetBuffer(0, ShaderIDs.ParticlePos, _particlePosBuffer);
         integrateParticlesShader.SetBuffer(0, ShaderIDs.ParticleVel, _particleVelBuffer);
@@ -204,7 +244,7 @@ public class FlipSimulation : MonoBehaviour
 
     private void UpdateMeshProperties()
     {
-        updateParticlePropertiesShader.SetVector(ShaderIDs.Size, (Vector3) _particleDimensions);
+        updateParticlePropertiesShader.SetVector(ShaderIDs.ParticleSize, (Vector3) _particleDimensions);
         updateParticlePropertiesShader.SetBuffer(0, ShaderIDs.ParticlePos, _particlePosBuffer);
         updateParticlePropertiesShader.SetBuffer(0, ShaderIDs.Properties, _meshPropertiesBuffer);
 
@@ -223,7 +263,7 @@ public class FlipSimulation : MonoBehaviour
         handleParticleCollisionsShader.SetBuffer(0, ShaderIDs.ParticlePos, _particlePosBuffer);
         handleParticleCollisionsShader.SetBuffer(0, ShaderIDs.ParticleVel, _particleVelBuffer);
 
-        handleParticleCollisionsShader.SetVector(ShaderIDs.Size, (Vector3) _particleDimensions);
+        handleParticleCollisionsShader.SetVector(ShaderIDs.ParticleSize, (Vector3) _particleDimensions);
         handleParticleCollisionsShader.SetFloat(ShaderIDs.MaxX, maxX);
         handleParticleCollisionsShader.SetFloat(ShaderIDs.MinX, minX);
         handleParticleCollisionsShader.SetFloat(ShaderIDs.MaxY, maxY);
@@ -232,5 +272,20 @@ public class FlipSimulation : MonoBehaviour
         handleParticleCollisionsShader.SetFloat(ShaderIDs.MinZ, minZ);
 
         handleParticleCollisionsShader.Dispatch(0, Mathf.CeilToInt((float)_particleDimensions.x / NumThreads), Mathf.CeilToInt((float)_particleDimensions.y / NumThreads), Mathf.CeilToInt((float)_particleDimensions.z / NumThreads));
+    }
+
+    private void TransferVelocityToParticle()
+    {
+        transferVelocityToParticleShader.SetTexture(0, ShaderIDs.GridVel, _gridVelTexture);
+
+        transferVelocityToParticleShader.SetBuffer(0, ShaderIDs.ParticlePos, _particlePosBuffer);
+        transferVelocityToParticleShader.SetBuffer(0, ShaderIDs.ParticleVel, _particleVelBuffer);
+
+        transferVelocityToParticleShader.SetVector(ShaderIDs.ParticleSize, (Vector3) _particleDimensions);
+        transferVelocityToParticleShader.SetVector(ShaderIDs.Offset, transform.localScale / 2);
+        transferVelocityToParticleShader.SetVector(ShaderIDs.GridSize, (Vector3) _gridDimensions);
+        transferVelocityToParticleShader.SetFloat(ShaderIDs.CellSpacing, _cellSpacing);
+
+        transferVelocityToParticleShader.Dispatch(0, Mathf.CeilToInt((float)_particleDimensions.x / NumThreads), Mathf.CeilToInt((float)_particleDimensions.y / NumThreads), Mathf.CeilToInt((float)_particleDimensions.z / NumThreads));
     }
 }

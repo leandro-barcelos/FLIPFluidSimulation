@@ -7,7 +7,7 @@ RWStructuredBuffer<float3> _ParticlePos;
 RWStructuredBuffer<float3> _ParticleVel;
 
 // Parameters
-float3 _Size;
+float3 _ParticleSize;
 float _MaxX;
 float _MinX;
 float _MaxY;
@@ -21,12 +21,12 @@ float _MinZ;
 [numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    if (any(id >= _Size))
+    if (any(id >= _ParticleSize))
     {
         return;
     }
 
-    int index = id.x + id.y * _Size.x + id.z * _Size.x * _Size.y;
+    int index = id.x + id.y * _ParticleSize.x + id.z * _ParticleSize.x * _ParticleSize.y;
 
     float3 pos = _ParticlePos[index];
     float3 vel = _ParticleVel[index];

@@ -12,7 +12,7 @@ RWStructuredBuffer<MeshProperties> _Properties;
 
 // Parameters
 StructuredBuffer<float3> _ParticlePos;
-float3 _Size;
+float3 _ParticleSize;
 
 // Kernel
 #pragma kernel CSMain
@@ -20,12 +20,12 @@ float3 _Size;
 [numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    if (any(id >= _Size))
+    if (any(id >= _ParticleSize))
     {
         return;
     }
 
-    int index = id.x + id.y * _Size.x + id.z * _Size.x * _Size.y;
+    int index = id.x + id.y * _ParticleSize.x + id.z * _ParticleSize.x * _ParticleSize.y;
 
     float4x4 transform = _Properties[index].mat;
     float3 pos = _ParticlePos[index];

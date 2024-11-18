@@ -160,6 +160,7 @@ MonoBehaviour:
   integrateParticlesShader: {fileID: 7200000, guid: 8a3877f757b4d45fdb965341c55fdac2, type: 3}
   updateParticlePropertiesShader: {fileID: 7200000, guid: 1a6959fd79f0bf2b9b2938da1ad46a41, type: 3}
   handleParticleCollisionsShader: {fileID: 7200000, guid: 0abe3e3dd123be050a862d5dd9fc25ee, type: 3}
+  transferVelocityToParticleShader: {fileID: 7200000, guid: 6654cf0567736f836a9954f51741cfef, type: 3}
   occlusionRange: 15
   particleMaterial: {fileID: 2100000, guid: cee1f6ce7317f70a589ea42c6c9cd2c6, type: 2}
 --- !u!65 &40513130
