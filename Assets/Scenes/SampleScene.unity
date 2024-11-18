@@ -151,17 +151,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0041b124594b548299af50eb8513cb11, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gravityAcceleration: 9.81
+  gravityAcceleration: -0.981
   density: 1000
   waterHeight: 0.8
   waterWidth: 0.6
   waterDepth: 0.6
-  resolution: 100
-  restDensity: 0
+  gridResolution: 100
   integrateParticlesShader: {fileID: 7200000, guid: 8a3877f757b4d45fdb965341c55fdac2, type: 3}
-  updateMeshProperties: {fileID: 7200000, guid: 1a6959fd79f0bf2b9b2938da1ad46a41, type: 3}
-  range: 10
-  material: {fileID: 2100000, guid: cee1f6ce7317f70a589ea42c6c9cd2c6, type: 2}
+  updateParticlePropertiesShader: {fileID: 7200000, guid: 1a6959fd79f0bf2b9b2938da1ad46a41, type: 3}
+  handleParticleCollisionsShader: {fileID: 7200000, guid: 0abe3e3dd123be050a862d5dd9fc25ee, type: 3}
+  occlusionRange: 15
+  particleMaterial: {fileID: 2100000, guid: cee1f6ce7317f70a589ea42c6c9cd2c6, type: 2}
 --- !u!65 &40513130
 BoxCollider:
   m_ObjectHideFlags: 0

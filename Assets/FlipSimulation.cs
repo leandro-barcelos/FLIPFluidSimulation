@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class FlipSimulation : MonoBehaviour
 {
@@ -40,7 +41,8 @@ public class FlipSimulation : MonoBehaviour
 
     [Header("Shaders")]
     public ComputeShader integrateParticlesShader;
-    public ComputeShader updateMeshPropertiesShader;
+    public ComputeShader updateParticlePropertiesShader;
+    public ComputeShader handleParticleCollisionsShader;
 
     [Header("Rendering")]
     public float occlusionRange;
@@ -89,9 +91,9 @@ public class FlipSimulation : MonoBehaviour
         // TODO: update particle density
         // TODO: solve incompressibility
         // TODO: transfer velocities back
-        // TODO: update colors
+        // TODO: update grid properties
 
-        UpdateMeshProperties();
+        UpdateMeshProperties(); // TODO: Update colors as well
 
         Graphics.DrawMeshInstancedIndirect(_particleMesh, 0, particleMaterial, _bounds, _argsBuffer);
     }
@@ -202,11 +204,11 @@ public class FlipSimulation : MonoBehaviour
 
     private void UpdateMeshProperties()
     {
-        updateMeshPropertiesShader.SetVector(ShaderIDs.Size, (Vector3) _particleDimensions);
-        updateMeshPropertiesShader.SetBuffer(0, ShaderIDs.ParticlePos, _particlePosBuffer);
-        updateMeshPropertiesShader.SetBuffer(0, ShaderIDs.Properties, _meshPropertiesBuffer);
+        updateParticlePropertiesShader.SetVector(ShaderIDs.Size, (Vector3) _particleDimensions);
+        updateParticlePropertiesShader.SetBuffer(0, ShaderIDs.ParticlePos, _particlePosBuffer);
+        updateParticlePropertiesShader.SetBuffer(0, ShaderIDs.Properties, _meshPropertiesBuffer);
 
-        updateMeshPropertiesShader.Dispatch(0, Mathf.CeilToInt((float)_particleDimensions.x / NumThreads), Mathf.CeilToInt((float)_particleDimensions.y / NumThreads), Mathf.CeilToInt((float)_particleDimensions.z / NumThreads));
+        updateParticlePropertiesShader.Dispatch(0, Mathf.CeilToInt((float)_particleDimensions.x / NumThreads), Mathf.CeilToInt((float)_particleDimensions.y / NumThreads), Mathf.CeilToInt((float)_particleDimensions.z / NumThreads));
     }
 
     private void HandleParticleCollisions()
