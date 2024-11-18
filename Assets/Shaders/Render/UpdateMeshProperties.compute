@@ -1,0 +1,38 @@
+#define NUM_THREADS 8
+
+#pragma enable_d3d11_debug_symbols
+
+struct MeshProperties {
+    float4x4 mat;
+    float4 color;
+};
+
+// Buffers
+RWStructuredBuffer<MeshProperties> _Properties;
+
+// Parameters
+StructuredBuffer<float3> _ParticlePos;
+float3 _Size;
+
+// Kernel
+#pragma kernel CSMain
+
+[numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    if (any(id >= _Size))
+    {
+        return;
+    }
+
+    int index = id.x + id.y * _Size.x + id.z * _Size.x * _Size.y;
+
+    float4x4 transform = _Properties[index].mat;
+    float3 pos = _ParticlePos[index];
+    transform[0][3] = pos.x;
+    transform[1][3] = pos.y;
+    transform[2][3] = pos.z;
+
+    // Apply translation to existing matrix, which will be read in the shader.
+    _Properties[index].mat = transform;
+}

@@ -1,0 +1,32 @@
+#define NUM_THREADS 8
+
+#pragma enable_d3d11_debug_symbols
+
+// Buffers
+RWStructuredBuffer<float3> _ParticlePos;
+RWStructuredBuffer<float3> _ParticleVel;
+
+// Parameters
+float3 _Size;
+float _TimeStep;
+float _Gravity;
+
+// Kernel
+#pragma kernel CSMain
+
+[numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    if (any(id >= _Size))
+    {
+        return;
+    }
+
+    int index = id.x + id.y * _Size.x + id.z * _Size.x * _Size.y;
+
+    // Integrate velocity with gravity
+    _ParticleVel[index].y += _TimeStep * _Gravity;
+
+    // Integrate position with velocity
+    _ParticlePos[index] += _ParticleVel[index] * _TimeStep;
+}
