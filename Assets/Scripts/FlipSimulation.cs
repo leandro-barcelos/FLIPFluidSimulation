@@ -92,7 +92,8 @@ public class FlipSimulation : MonoBehaviour
 
         HandleParticleCollisions(); // TODO: handle obstacle collisions
 
-        // TODO: transfer velocities
+        // TODO: update cell types
+        // TODO: transfer velocities to grid
         // TODO: update particle density
         // TODO: solve incompressibility
 
