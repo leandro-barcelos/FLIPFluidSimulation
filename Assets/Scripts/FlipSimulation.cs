@@ -5,6 +5,7 @@ using UnityEngine.Serialization;
 
 public class FlipSimulation : MonoBehaviour
 {
+    private static readonly int Properties = Shader.PropertyToID("_Properties");
     const int NumThreads = 8;
 
     #region Auxiliary Structures
@@ -41,12 +42,6 @@ public class FlipSimulation : MonoBehaviour
 
     [Header("Particles")]
 
-    [Header("Shaders")]
-    public ComputeShader integrateParticlesShader;
-    public ComputeShader updateParticlePropertiesShader;
-    public ComputeShader handleParticleCollisionsShader;
-    public ComputeShader transferVelocityToParticleShader;
-
     [Header("Rendering")]
     public float occlusionRange;
     public Material particleMaterial;
@@ -58,13 +53,13 @@ public class FlipSimulation : MonoBehaviour
     //  Grid
     private float _cellSpacing;
     private Vector3Int _gridDimensions;
-    private RenderTexture _gridVelTexture;
+    private Vector3[][][] _gridVel;
 
     // Particles
     private int _maxParticles;
     private float _particleRadius;
     private Vector3Int _particleDimensions;
-    private ComputeBuffer _particlePosBuffer, _particleVelBuffer;
+    private Vector3[] _particlePos, _particleVel;
     private float[] _particleDensity;
     private Color[] _particleColor;
 
@@ -107,11 +102,8 @@ public class FlipSimulation : MonoBehaviour
     }
 
     private void OnDisable() {
-        _particlePosBuffer.Release();
-        _particleVelBuffer.Release();
         _meshPropertiesBuffer.Release();
         _argsBuffer.Release();
-        _gridVelTexture.Release();
     }
 
     private void InitializeRendering()
@@ -131,7 +123,16 @@ public class FlipSimulation : MonoBehaviour
         );
         _cellSpacing = Mathf.Max(scale.x / _gridDimensions.x, scale.y / _gridDimensions.y, scale.z / _gridDimensions.z);
 
-        _gridVelTexture = InitializeTexture(4);
+        _gridVel = new Vector3[_gridDimensions.x][][];
+
+        for (int i = 0; i < _gridDimensions.x; i++)
+        {
+            _gridVel[i] = new Vector3[_gridDimensions.y][];
+            for (int j = 0; j < _gridDimensions.y; j++)
+            {
+                _gridVel[i][j] = new Vector3[_gridDimensions.z];
+            }
+        }
     }
 
     private void InitializeParticles()
@@ -163,10 +164,9 @@ public class FlipSimulation : MonoBehaviour
         _argsBuffer = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
         _argsBuffer.SetData(args);
 
-        _particlePosBuffer = new ComputeBuffer(_maxParticles, sizeof(float) * 3);
-        _particleVelBuffer = new ComputeBuffer(_maxParticles, sizeof(float) * 3);
+        _particleVel = new Vector3[_maxParticles];
+        _particlePos = new Vector3[_maxParticles];
 
-        Vector3[] particlePos = new Vector3[_maxParticles];
         MeshProperties[] properties = new MeshProperties[_maxParticles];
 
         Vector3 particleScale = new Vector3(_particleRadius * 2, _particleRadius * 2, _particleRadius * 2);
@@ -185,11 +185,11 @@ public class FlipSimulation : MonoBehaviour
                     float y = _particleRadius + j * (Mathf.Sqrt(3.0f) / 2.0f * (2.0f * _particleRadius)) + offset.y;
                     float z = _particleRadius + k * (Mathf.Sqrt(2.0f / 3.0f) * (2.0f * _particleRadius)) + offset.z;
 
-                    particlePos[index] = new Vector3(x, y, z);
+                    _particlePos[index] = new Vector3(x, y, z);
 
                     MeshProperties props = new MeshProperties
                     {
-                        Mat = Matrix4x4.TRS(particlePos[index], rotation, particleScale),
+                        Mat = Matrix4x4.TRS(_particlePos[index], rotation, particleScale),
                         Color = Color.white
                     };
 
@@ -202,91 +202,26 @@ public class FlipSimulation : MonoBehaviour
         _meshPropertiesBuffer = new ComputeBuffer(_maxParticles, MeshProperties.Size());
         _meshPropertiesBuffer.SetData(properties);
 
-        particleMaterial.SetBuffer(ShaderIDs.Properties, _meshPropertiesBuffer);
-        _particlePosBuffer.SetData(particlePos);
-    }
-
-    private RenderTexture InitializeTexture(int formatSize)
-    {
-        var format = formatSize switch
-        {
-            1 => RenderTextureFormat.RHalf,
-            4 => RenderTextureFormat.ARGBHalf,
-            _ => throw new Exception("Invalid number of dimensions for the texture"),
-        };
-
-
-        var texture = new RenderTexture(_gridDimensions.x, _gridDimensions.y, 0, format)
-        {
-            dimension = TextureDimension.Tex3D,
-            volumeDepth = _gridDimensions.z,
-            enableRandomWrite = true,
-            filterMode = FilterMode.Point,
-            wrapMode = TextureWrapMode.Clamp
-        };
-
-        texture.Create();
-
-        return texture;
+        particleMaterial.SetBuffer(Properties, _meshPropertiesBuffer);
     }
 
     private void IntegrateParticles(float dt)
     {
-        integrateParticlesShader.SetFloat(ShaderIDs.TimeStep, dt);
-        integrateParticlesShader.SetFloat(ShaderIDs.Gravity, gravityAcceleration);
-
-        integrateParticlesShader.SetVector(ShaderIDs.ParticleSize, (Vector3) _particleDimensions);
-
-        integrateParticlesShader.SetBuffer(0, ShaderIDs.ParticlePos, _particlePosBuffer);
-        integrateParticlesShader.SetBuffer(0, ShaderIDs.ParticleVel, _particleVelBuffer);
-
-        integrateParticlesShader.Dispatch(0, Mathf.CeilToInt((float)_particleDimensions.x / NumThreads), Mathf.CeilToInt((float)_particleDimensions.y / NumThreads), Mathf.CeilToInt((float)_particleDimensions.z / NumThreads));
+        throw new NotImplementedException();
     }
 
     private void UpdateMeshProperties()
     {
-        updateParticlePropertiesShader.SetVector(ShaderIDs.ParticleSize, (Vector3) _particleDimensions);
-        updateParticlePropertiesShader.SetBuffer(0, ShaderIDs.ParticlePos, _particlePosBuffer);
-        updateParticlePropertiesShader.SetBuffer(0, ShaderIDs.Properties, _meshPropertiesBuffer);
-
-        updateParticlePropertiesShader.Dispatch(0, Mathf.CeilToInt((float)_particleDimensions.x / NumThreads), Mathf.CeilToInt((float)_particleDimensions.y / NumThreads), Mathf.CeilToInt((float)_particleDimensions.z / NumThreads));
+        throw new NotImplementedException();
     }
 
     private void HandleParticleCollisions()
     {
-        var maxX = transform.position.x + transform.localScale.x / 2 - _particleRadius;
-        var minX = transform.position.x - transform.localScale.x / 2 + _particleRadius;
-        var maxY = transform.position.y + transform.localScale.y / 2 - _particleRadius;
-        var minY = transform.position.y - transform.localScale.y / 2 + _particleRadius;
-        var maxZ = transform.position.z + transform.localScale.z / 2 - _particleRadius;
-        var minZ = transform.position.z - transform.localScale.z / 2 + _particleRadius;
-
-        handleParticleCollisionsShader.SetBuffer(0, ShaderIDs.ParticlePos, _particlePosBuffer);
-        handleParticleCollisionsShader.SetBuffer(0, ShaderIDs.ParticleVel, _particleVelBuffer);
-
-        handleParticleCollisionsShader.SetVector(ShaderIDs.ParticleSize, (Vector3) _particleDimensions);
-        handleParticleCollisionsShader.SetFloat(ShaderIDs.MaxX, maxX);
-        handleParticleCollisionsShader.SetFloat(ShaderIDs.MinX, minX);
-        handleParticleCollisionsShader.SetFloat(ShaderIDs.MaxY, maxY);
-        handleParticleCollisionsShader.SetFloat(ShaderIDs.MinY, minY);
-        handleParticleCollisionsShader.SetFloat(ShaderIDs.MaxZ, maxZ);
-        handleParticleCollisionsShader.SetFloat(ShaderIDs.MinZ, minZ);
-
-        handleParticleCollisionsShader.Dispatch(0, Mathf.CeilToInt((float)_particleDimensions.x / NumThreads), Mathf.CeilToInt((float)_particleDimensions.y / NumThreads), Mathf.CeilToInt((float)_particleDimensions.z / NumThreads));
+        throw new NotImplementedException();
     }
 
     private void TransferVelocityToParticle()
     {
-        transferVelocityToParticleShader.SetTexture(0, ShaderIDs.GridVel, _gridVelTexture);
-
-        transferVelocityToParticleShader.SetBuffer(0, ShaderIDs.ParticlePos, _particlePosBuffer);
-        transferVelocityToParticleShader.SetBuffer(0, ShaderIDs.ParticleVel, _particleVelBuffer);
-
-        transferVelocityToParticleShader.SetVector(ShaderIDs.ParticleSize, (Vector3) _particleDimensions);
-        transferVelocityToParticleShader.SetVector(ShaderIDs.Offset, transform.localScale / 2);
-        transferVelocityToParticleShader.SetVector(ShaderIDs.GridSize, (Vector3) _gridDimensions);
-        transferVelocityToParticleShader.SetFloat(ShaderIDs.CellSpacing, _cellSpacing);
-
-        transferVelocityToParticleShader.Dispatch(0, Mathf.CeilToInt((float)_particleDimensions.x / NumThreads), Mathf.CeilToInt((float)_particleDimensions.y / NumThreads), Mathf.CeilToInt((float)_particleDimensions.z / NumThreads));
+        throw new NotImplementedException();
     }
 }
