@@ -20,7 +20,7 @@ float3 _ParticleSize;
 [numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    if (any(id >= _ParticleSize))
+    if (any(id >= uint3(_ParticleSize)))
     {
         return;
     }
