@@ -70,6 +70,7 @@ public class FlipSimulation : MonoBehaviour
     #region Private Variables
 
     private float _deltaTime;
+    private Vector3 _simOrigin;
 
     //  Grid
     private float _cellSpacing, _cellInvSpacing;
@@ -100,6 +101,7 @@ public class FlipSimulation : MonoBehaviour
 
     void Start()
     {
+        _simOrigin = transform.position - transform.localScale / 2;
         _deltaTime = Time.fixedDeltaTime;
         // _obstacles = new List<MeshFilter>();
 
@@ -302,20 +304,18 @@ public class FlipSimulation : MonoBehaviour
 
     private void HandleParticleCollisions()
     {
-        var simOrigin = transform.position - transform.localScale / 2;
-
-        var minX = simOrigin.x + _cellSpacing + _particleRadius;
-        var maxX = simOrigin.x + (_gridDimensions.x - 1) * _cellSpacing - _particleRadius;
-        var minY = simOrigin.y + _cellSpacing + _particleRadius;
-        var maxY = simOrigin.y + (_gridDimensions.y - 1) * _cellSpacing - _particleRadius;
-        var minZ = simOrigin.z + _cellSpacing + _particleRadius;
-        var maxZ = simOrigin.z + (_gridDimensions.z - 1) * _cellSpacing - _particleRadius;
+        var minX = _simOrigin.x + _cellSpacing + _particleRadius;
+        var maxX = _simOrigin.x + (_gridDimensions.x - 1) * _cellSpacing - _particleRadius;
+        var minY = _simOrigin.y + _cellSpacing + _particleRadius;
+        var maxY = _simOrigin.y + (_gridDimensions.y - 1) * _cellSpacing - _particleRadius;
+        var minZ = _simOrigin.z + _cellSpacing + _particleRadius;
+        var maxZ = _simOrigin.z + (_gridDimensions.z - 1) * _cellSpacing - _particleRadius;
 
         Parallel.For(0, _maxParticles, i =>
         {
-            var xCell = Mathf.FloorToInt((_particlePos[i].x - simOrigin.x) * _cellInvSpacing);
-            var yCell = Mathf.FloorToInt((_particlePos[i].y - simOrigin.y) * _cellInvSpacing);
-            var zCell = Mathf.FloorToInt((_particlePos[i].z - simOrigin.z) * _cellInvSpacing);
+            var xCell = Mathf.FloorToInt((_particlePos[i].x - _simOrigin.x) * _cellInvSpacing);
+            var yCell = Mathf.FloorToInt((_particlePos[i].y - _simOrigin.y) * _cellInvSpacing);
+            var zCell = Mathf.FloorToInt((_particlePos[i].z - _simOrigin.z) * _cellInvSpacing);
 
             int cellIndex = To1D(xCell, yCell, zCell);
 
@@ -331,9 +331,9 @@ public class FlipSimulation : MonoBehaviour
                     _particleVel[i] = (start + end) * 0.5f;
                     _particlePos[i] += _particleVel[i] * _deltaTime;
 
-                    xCell = Mathf.FloorToInt((_particlePos[i].x - simOrigin.x) * _cellInvSpacing);
-                    yCell = Mathf.FloorToInt((_particlePos[i].y - simOrigin.y) * _cellInvSpacing);
-                    zCell = Mathf.FloorToInt((_particlePos[i].z - simOrigin.z) * _cellInvSpacing);
+                    xCell = Mathf.FloorToInt((_particlePos[i].x - _simOrigin.x) * _cellInvSpacing);
+                    yCell = Mathf.FloorToInt((_particlePos[i].y - _simOrigin.y) * _cellInvSpacing);
+                    zCell = Mathf.FloorToInt((_particlePos[i].z - _simOrigin.z) * _cellInvSpacing);
 
                     cellIndex = To1D(xCell, yCell, zCell);
 
@@ -392,7 +392,6 @@ public class FlipSimulation : MonoBehaviour
 
     private void GenerateObstaclesSDF(MeshFilter meshFilter)
     {
-        var simOrigin = transform.position - transform.localScale / 2;
         _obstaclesSDF = new float[_numCells];
         int[] closestTriangles = new int[_numCells];
         int[] intersectionCounts = new int[_numCells];
@@ -417,8 +416,8 @@ public class FlipSimulation : MonoBehaviour
                     for (int k = 0; k < _gridDimensions.z; k++)
                     {
                         var index = To1D(i, j, k);
-                        var p = simOrigin + new Vector3(i * _cellSpacing, j * _cellSpacing, k * _cellSpacing);
-                        var q = simOrigin + new Vector3((i + 1) * _cellSpacing, j * _cellSpacing, k * _cellSpacing);
+                        var p = _simOrigin + new Vector3(i * _cellSpacing, j * _cellSpacing, k * _cellSpacing);
+                        var q = _simOrigin + new Vector3((i + 1) * _cellSpacing, j * _cellSpacing, k * _cellSpacing);
 
                         if (!RaycastTriangle(p, q, a, b, c, out var intersection)) continue;
 
@@ -493,10 +492,9 @@ public class FlipSimulation : MonoBehaviour
 
     private void UpdateDistanceAndClosestTriangle(MeshFilter meshFilter, float[] distances, int[] closestTriangles, int i, int j, int k)
     {
-        var simOrigin = transform.position - transform.localScale / 2;
         float minDist = distances[To1D(i, j, k)];
         int closestTriangle = closestTriangles[To1D(i, j, k)];
-        var p = simOrigin + new Vector3(i * _cellSpacing, j * _cellSpacing, k * _cellSpacing);
+        var p = _simOrigin + new Vector3(i * _cellSpacing, j * _cellSpacing, k * _cellSpacing);
 
         // Iterate over neighbors
         int[] di = { -1, 1, 0, 0, 0, 0 };
