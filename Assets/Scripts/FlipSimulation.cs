@@ -313,11 +313,7 @@ public class FlipSimulation : MonoBehaviour
 
         Parallel.For(0, _maxParticles, i =>
         {
-            var xCell = Mathf.FloorToInt((_particlePos[i].x - _simOrigin.x) * _cellInvSpacing);
-            var yCell = Mathf.FloorToInt((_particlePos[i].y - _simOrigin.y) * _cellInvSpacing);
-            var zCell = Mathf.FloorToInt((_particlePos[i].z - _simOrigin.z) * _cellInvSpacing);
-
-            int cellIndex = To1D(xCell, yCell, zCell);
+            int cellIndex = ParticleToCell1D(_particlePos[i]);
 
             if (_cellType[cellIndex] == CellType.Solid)
             {
@@ -331,11 +327,7 @@ public class FlipSimulation : MonoBehaviour
                     _particleVel[i] = (start + end) * 0.5f;
                     _particlePos[i] += _particleVel[i] * _deltaTime;
 
-                    xCell = Mathf.FloorToInt((_particlePos[i].x - _simOrigin.x) * _cellInvSpacing);
-                    yCell = Mathf.FloorToInt((_particlePos[i].y - _simOrigin.y) * _cellInvSpacing);
-                    zCell = Mathf.FloorToInt((_particlePos[i].z - _simOrigin.z) * _cellInvSpacing);
-
-                    cellIndex = To1D(xCell, yCell, zCell);
+                    cellIndex = ParticleToCell1D(_particlePos[i]);
 
                     if (_cellType[cellIndex] == CellType.Solid)
                     {
@@ -533,6 +525,24 @@ public class FlipSimulation : MonoBehaviour
     #endregion
 
     #region Utils
+
+    private int ParticleToCell1D(Vector3 position)
+    {
+        var xCell = Mathf.FloorToInt((position.x - _simOrigin.x) * _cellInvSpacing);
+        var yCell = Mathf.FloorToInt((position.y - _simOrigin.y) * _cellInvSpacing);
+        var zCell = Mathf.FloorToInt((position.z - _simOrigin.z) * _cellInvSpacing);
+
+        return To1D(xCell, yCell, zCell);
+    }
+
+    private int[] ParticleToCell3D(Vector3 position)
+    {
+        var xCell = Mathf.FloorToInt((position.x - _simOrigin.x) * _cellInvSpacing);
+        var yCell = Mathf.FloorToInt((position.y - _simOrigin.y) * _cellInvSpacing);
+        var zCell = Mathf.FloorToInt((position.z - _simOrigin.z) * _cellInvSpacing);
+
+        return new int[] { xCell, yCell, zCell };
+    }
 
     private bool IsValidIndex(int i, int j, int k)
     {
