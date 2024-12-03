@@ -1,0 +1,120 @@
+#define NUM_THREADS 8
+#define BINARY_SEARCH_STEPS 5
+
+#pragma enable_d3d11_debug_symbols
+
+// Buffers
+RWStructuredBuffer<float3> _ParticlePos;
+RWStructuredBuffer<float3> _ParticleVel;
+StructuredBuffer<int> _CellType;
+StructuredBuffer<float> _ObstaclesSDF;
+
+// Parameters
+float3 _ParticleSize;
+float3 _SimOrigin;
+float3 _GridDimensions;
+float _ParticleRadius;
+float _CellSpacing;
+float _CellInvSpacing;
+float _TimeStep;
+
+int ParticleToCell1D(float3 position)
+{
+    int xCell = floor((position.x - _SimOrigin.x) * _CellInvSpacing);
+    int yCell = floor((position.y - _SimOrigin.y) * _CellInvSpacing);
+    int zCell = floor((position.z - _SimOrigin.z) * _CellInvSpacing);
+
+    xCell = clamp(xCell, 0, _GridDimensions.x - 1);
+    yCell = clamp(yCell, 0, _GridDimensions.y - 1);
+    zCell = clamp(zCell, 0, _GridDimensions.z - 1);
+
+    return (zCell * _GridDimensions.x * _GridDimensions.y) + (yCell * _GridDimensions.x) + xCell;
+}
+
+// Kernel
+#pragma kernel CSMain
+
+[numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    if (any(id >= _ParticleSize))
+    {
+        return;
+    }
+
+    int index = id.x + id.y * _ParticleSize.x + id.z * _ParticleSize.x * _ParticleSize.y;
+
+    float minX = _SimOrigin.x + _CellSpacing + _ParticleRadius;
+    float maxX = _SimOrigin.x + (_GridDimensions.x - 1) * _CellSpacing - _ParticleRadius;
+    float minY = _SimOrigin.y + _CellSpacing + _ParticleRadius;
+    float maxY = _SimOrigin.y + (_GridDimensions.y - 1) * _CellSpacing - _ParticleRadius;
+    float minZ = _SimOrigin.z + _CellSpacing + _ParticleRadius;
+    float maxZ = _SimOrigin.z + (_GridDimensions.z - 1) * _CellSpacing - _ParticleRadius;
+    
+    int cellIndex = ParticleToCell1D(_ParticlePos[index]);
+
+    if (_CellType[cellIndex] == 1)
+    {
+        _ParticlePos[index] -= _ParticleVel[index] * _TimeStep;
+
+        float3 start = 0.0;
+        float3 end = _ParticleVel[index];
+
+        for (int j = 0; j < BINARY_SEARCH_STEPS; j++)
+        {
+            _ParticleVel[index] = (start + end) * 0.5f;
+            _ParticlePos[index] += _ParticleVel[index] * _TimeStep;
+
+            cellIndex = ParticleToCell1D(_ParticlePos[index]);
+
+            if (_CellType[cellIndex] == 1)
+            {
+                end = _ParticleVel[index];
+            }
+            else
+            {
+                start = _ParticleVel[index];
+            }
+
+            _ParticlePos[index] -= _ParticleVel[index] * _TimeStep;
+        }
+
+        if (_CellType[cellIndex] == 1)
+        {
+            _ParticlePos[index] += float3(_ObstaclesSDF[cellIndex], _ObstaclesSDF[cellIndex], _ObstaclesSDF[cellIndex]);
+        }
+    }
+
+    if (_ParticlePos[index].x < minX)
+    {
+        _ParticlePos[index].x = minX;
+        _ParticleVel[index].x = 0.0;
+    }
+    else if (_ParticlePos[index].x > maxX)
+    {
+        _ParticlePos[index].x = maxX;
+        _ParticleVel[index].x = 0.0;
+    }
+
+    if (_ParticlePos[index].y < minY)
+    {
+        _ParticlePos[index].y = minY;
+        _ParticleVel[index].y = 0.0;
+    }
+    else if (_ParticlePos[index].y > maxY)
+    {
+        _ParticlePos[index].y = maxY;
+        _ParticleVel[index].y = 0.0;
+    }
+
+    if (_ParticlePos[index].z < minZ)
+    {
+        _ParticlePos[index].z = minZ;
+        _ParticleVel[index].z = 0.0;
+    }
+    else if (_ParticlePos[index].z > maxZ)
+    {
+        _ParticlePos[index].z = maxZ;
+        _ParticleVel[index].z = 0.0;
+    }
+}
