@@ -32,6 +32,7 @@ public class ObstacleMovement : MonoBehaviour
         else if (Input.GetKey(KeyCode.S))
             direction += Vector3.back;
 
-        flipSimulation.SetObstacle(transform.position + direction * speed, false);
+        if (direction != Vector3.zero)
+            flipSimulation.SetObstacle(transform.position + direction * speed, false);
     }
 }
