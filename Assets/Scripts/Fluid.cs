@@ -22,9 +22,9 @@ public class Fluid
     public float fInvSpacing { get; set; }
     public int fNumCells { get; set; }
 
-    public float[] u { get; set; }
-    public float[] v { get; set; }
-    public float[] w { get; set; }
+    public ComputeBuffer uBuffer { get; set; }
+    public ComputeBuffer vBuffer { get; set; }
+    public ComputeBuffer wBuffer { get; set; }
     public float[] du { get; set; }
     public float[] dv { get; set; }
     public float[] dw { get; set; }
@@ -33,6 +33,7 @@ public class Fluid
     public float[] prevW { get; set; }
     public float[] p { get; set; }
     public float[] s { get; set; }
+    public ComputeBuffer sBuffer { get; set; }
     public ComputeBuffer cellTypeBuffer { get; set; }
     public Color[] cellColor { get; set; }
 
@@ -60,12 +61,16 @@ public class Fluid
     private ComputeShader pushParticlesApartShader;
     private ComputeShader handleParticleCollisionsShader;
     private ComputeShader updateParticlePropertiesShader;
+    private ComputeShader updateCellTypeShader;
+    private ComputeShader setObstacleShader;
     private void LoadShaders()
     {
         integrateParticlesShader = Resources.Load<ComputeShader>("IntegrateParticle");
         pushParticlesApartShader = Resources.Load<ComputeShader>("PushParticlesApart");
         handleParticleCollisionsShader = Resources.Load<ComputeShader>("HandleParticleCollisions");
         updateParticlePropertiesShader = Resources.Load<ComputeShader>("UpdateParticleProperties");
+        updateCellTypeShader = Resources.Load<ComputeShader>("UpdateCellType");
+        setObstacleShader = Resources.Load<ComputeShader>("SetObstacle");
     }
 
     public Fluid(Vector3 simOrigin, float density, Vector3 dimentions, float spacing, float particleRadius, int maxParticles)
@@ -80,9 +85,9 @@ public class Fluid
         fInvSpacing = 1f / h;
         fNumCells = fDimensions.x * fDimensions.y * fDimensions.z;
 
-        u = new float[fNumCells];
-        v = new float[fNumCells];
-        w = new float[fNumCells];
+        uBuffer = new ComputeBuffer(fNumCells, sizeof(float));
+        vBuffer = new ComputeBuffer(fNumCells, sizeof(float));
+        wBuffer = new ComputeBuffer(fNumCells, sizeof(float));
         du = new float[fNumCells];
         dv = new float[fNumCells];
         dw = new float[fNumCells];
@@ -112,6 +117,8 @@ public class Fluid
         particleColorBuffer = new ComputeBuffer(maxParticles, sizeof(float) * 4);
         particleColorBuffer.SetData(particleColor);
         cellTypeBuffer = new ComputeBuffer(fNumCells, sizeof(int));
+        sBuffer = new ComputeBuffer(fNumCells, sizeof(float));
+        sBuffer.SetData(s);
         numCellParticles = new ComputeBuffer(pNumCells, sizeof(int));
         firstCellParticle = new ComputeBuffer(pNumCells + 1, sizeof(int));
         cellParticleIds = new ComputeBuffer(maxParticles, sizeof(int));
@@ -123,6 +130,7 @@ public class Fluid
         if (separateParticles)
             PushParticlesApart();
         HandleParticleCollisions(obstaclePos, obstacleVel, obstacleRadius); // TODO: handle obstacle collisions
+        UpdateCellType();
         UpdateMeshProperties(meshPropertiesBuffer);
     }
 
@@ -242,14 +250,54 @@ public class Fluid
             Mathf.CeilToInt((float)numParticles / NumThreads), 1, 1);
     }
 
+    private void UpdateCellType()
+    {
+        updateCellTypeShader.SetInt(ShaderIDs.FNumCells, fNumCells);
+        updateCellTypeShader.SetInt(ShaderIDs.NumParticles, numParticles);
+        updateCellTypeShader.SetFloat(ShaderIDs.FInvSpacing, fInvSpacing);
+        updateCellTypeShader.SetVector(ShaderIDs.SimOrigin, simOrigin);
+        updateCellTypeShader.SetVector(ShaderIDs.FDimensions, (Vector3)fDimensions);
+
+        int sKernel = updateCellTypeShader.FindKernel("BasedOnS");
+        updateCellTypeShader.SetBuffer(sKernel, ShaderIDs.CellType, cellTypeBuffer);
+        updateCellTypeShader.SetBuffer(sKernel, ShaderIDs.S, sBuffer);
+
+        updateCellTypeShader.Dispatch(sKernel, Mathf.CeilToInt((float)fNumCells / NumThreads), 1, 1);
+
+        int particleKernel = updateCellTypeShader.FindKernel("BasedOnParticles");
+        updateCellTypeShader.SetBuffer(particleKernel, ShaderIDs.CellType, cellTypeBuffer);
+        updateCellTypeShader.SetBuffer(particleKernel, ShaderIDs.ParticlePos, particlePosBuffer);
+
+        updateCellTypeShader.Dispatch(particleKernel, Mathf.CeilToInt((float)numParticles / NumThreads), 1, 1);
+    }
+
+    public void SetObstacle(Vector3 obstaclePos, Vector3 obstacleVel, float obstacleRadius)
+    {
+        setObstacleShader.SetFloat(ShaderIDs.H, h);
+        setObstacleShader.SetFloat(ShaderIDs.ObstacleRadius, obstacleRadius);
+        setObstacleShader.SetVector(ShaderIDs.ObstaclePos, obstaclePos);
+        setObstacleShader.SetVector(ShaderIDs.ObstacleVel, obstacleVel);
+
+        setObstacleShader.SetBuffer(0, ShaderIDs.S, sBuffer);
+        setObstacleShader.SetBuffer(0, ShaderIDs.U, uBuffer);
+        setObstacleShader.SetBuffer(0, ShaderIDs.V, vBuffer);
+        setObstacleShader.SetBuffer(0, ShaderIDs.W, wBuffer);
+
+        setObstacleShader.Dispatch(0, Mathf.CeilToInt((float)fDimensions.x / NumThreads), Mathf.CeilToInt((float)fDimensions.y / NumThreads), Mathf.CeilToInt((float)fDimensions.z / NumThreads));
+    }
+
     public void Destroy()
     {
         particlePosBuffer.Release();
         particleVelBuffer.Release();
         particleColorBuffer.Release();
         cellTypeBuffer.Release();
+        sBuffer.Release();
         numCellParticles.Release();
         firstCellParticle.Release();
         cellParticleIds.Release();
+        uBuffer.Release();
+        vBuffer.Release();
+        wBuffer.Release();
     }
 }

@@ -1,0 +1,47 @@
+#define NUM_THREADS 8
+
+#pragma enable_d3d11_debug_symbols
+
+// Buffers
+RWStructuredBuffer<float> _S;
+RWStructuredBuffer<float> _U;
+RWStructuredBuffer<float> _V;
+RWStructuredBuffer<float> _W;
+
+// Parameters
+float3 _ObstaclePos;
+float3 _ObstacleVel;
+float3 _FDimensions;
+float _H;
+float _ObstacleRadius;
+
+#pragma kernel CSMain
+
+[numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    if (any((int)id >= _FDimensions))
+    {
+        return;
+    }
+
+    int n = _FDimensions.y;
+    int m = _FDimensions.z;
+
+    int index = id.x + id.y * _FDimensions.x + id.z * _FDimensions.x * _FDimensions.y;
+
+    _S[index] = 1.0;
+
+    float3 d = (id + 0.5) * _H - _ObstaclePos;
+
+    if (dot(d, d) < _ObstacleRadius * _ObstacleRadius)
+    {
+        _S[id.x * n * m + id.y * m + id.z] = 0.0;
+        _U[id.x * n * m + id.y * m + id.z] = _ObstacleVel.x;
+        _U[(id.x + 1) * n * m + id.y * m + id.z] = _ObstacleVel.x;
+        _V[id.x * n * m + id.y * m + id.z] = _ObstacleVel.y;
+        _V[id.x * n * m + (id.y + 1) * m + id.z] = _ObstacleVel.y;
+        _W[id.x * n * m + id.y * m + id.z] = _ObstacleVel.z;
+        _W[id.x * n * m + id.y * m + id.z + 1] = _ObstacleVel.z;
+    }
+}

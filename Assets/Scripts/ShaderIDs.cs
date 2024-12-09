@@ -35,4 +35,11 @@ public class ShaderIDs
     public static readonly int MinDist2 = Shader.PropertyToID("_MinDist2");
     public static readonly int ObstaclePos = Shader.PropertyToID("_ObstaclePos");
     public static readonly int ObstacleVel = Shader.PropertyToID("_ObstacleVel");
+    public static readonly int FNumCells = Shader.PropertyToID("_FNumCells");
+    public static readonly int FInvSpacing = Shader.PropertyToID("_FInvSpacing");
+    public static readonly int S = Shader.PropertyToID("_S");
+    public static readonly int H = Shader.PropertyToID("_H");
+    public static readonly int U = Shader.PropertyToID("_U");
+    public static readonly int V = Shader.PropertyToID("_V");
+    public static readonly int W = Shader.PropertyToID("_W");
 }

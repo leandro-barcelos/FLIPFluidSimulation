@@ -196,34 +196,8 @@ public class FlipSimulation : MonoBehaviour
         obstacle.transform.position = position;
         Vector3 scale = obstacle.transform.localScale;
         float r = Mathf.Max(scale.x, scale.y, scale.z) / 2;
-        var n = fluid.fDimensions.y;
-        var m = fluid.fDimensions.z;
 
-        for (int i = 0; i < fluid.fDimensions.x; i++)
-        {
-            for (int j = 0; j < fluid.fDimensions.y; j++)
-            {
-                for (int k = 0; k < fluid.fDimensions.z; k++)
-                {
-                    fluid.s[i * n * m + j * m + k] = 1.0f;
-
-                    float dx = (i + 0.5f) * fluid.h - position.x;
-                    float dy = (j + 0.5f) * fluid.h - position.y;
-                    float dz = (k + 0.5f) * fluid.h - position.z;
-
-                    if (dx * dx + dy * dy + dz * dz < r * r)
-                    {
-                        fluid.s[i * n * m + j * m + k] = 0.0f;
-                        fluid.u[i * n * m + j * m + k] = vel.x;
-                        fluid.u[(i + 1) * n * m + j * m + k] = vel.x;
-                        fluid.v[i * n * m + j * m + k] = vel.y;
-                        fluid.v[i * n * m + (j + 1) * m + k] = vel.y;
-                        fluid.w[i * n * m + j * m + k] = vel.z;
-                        fluid.w[i * n * m + j * m + k + 1] = vel.z;
-                    }
-                }
-            }
-        }
+        fluid.SetObstacle(position, vel, r);
 
         obstacleVel = vel;
     }
