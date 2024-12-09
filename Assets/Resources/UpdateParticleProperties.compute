@@ -9,23 +9,24 @@ struct MeshProperties {
 
 // Buffers
 RWStructuredBuffer<MeshProperties> _Properties;
+StructuredBuffer<float3> _ParticlePos;
+StructuredBuffer<float3> _ParticleColor;
 
 // Parameters
-StructuredBuffer<float3> _ParticlePos;
-float3 _ParticleSize;
+float _NumParticles;
 
 // Kernel
 #pragma kernel CSMain
 
-[numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
+[numthreads(NUM_THREADS, 1, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    if (any(id >= uint3(_ParticleSize)))
+    if ((int)id.x >= _NumParticles)
     {
         return;
     }
 
-    int index = id.x + id.y * _ParticleSize.x + id.z * _ParticleSize.x * _ParticleSize.y;
+    int index = id.x;
 
     float4x4 transform = _Properties[index].mat;
     float3 pos = _ParticlePos[index];
@@ -35,4 +36,5 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
     // Apply translation to existing matrix, which will be read in the shader.
     _Properties[index].mat = transform;
+    _Properties[index].color = float4(_ParticleColor[index], 1.0);
 }

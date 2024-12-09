@@ -93,20 +93,29 @@ bool RaycastTriangle(float3 start, float3 end, float3 a, float3 b, float3 c, out
     float dotProduct = dot(e1, normal);
 
     if (dotProduct > -epsilon && dotProduct < epsilon)
+    {
+        intersection = float3(0.0, 0.0, 0.0);
         return false;
+    }
 
     float invDotProduct = 1.0 / dotProduct;
     float3 toStart = start - a;
     float triangleParam = invDotProduct * dot(toStart, normal);
 
     if (triangleParam < 0.0 || triangleParam > 1.0)
+    {
+        intersection = float3(0.0, 0.0, 0.0);
         return false;
+    }
 
     float3 edgeCross = cross(toStart, e1);
     float raycastParam = invDotProduct * dot(nDirection, edgeCross);
 
     if (raycastParam < 0.0 || triangleParam + raycastParam > 1.0)
+    {
+        intersection = float3(0.0, 0.0, 0.0);
         return false;
+    }
 
     float distance = invDotProduct * dot(e2, edgeCross);
     if (distance > epsilon && distance < length(direction))

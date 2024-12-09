@@ -151,26 +151,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0041b124594b548299af50eb8513cb11, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gravityAcceleration: -0.981
+  gravity: -9.81
+  dt: 0.016666668
   flipRatio: 0.9
-  numPressureIterations: 50
-  numParticleIterations: 2
+  numPressureIters: 50
+  numParticleIters: 2
+  overRelaxation: 1.9
   compensateDrift: 1
   separateParticles: 1
-  restDensity: 0
-  collisionForce: 5
   showParticles: 1
   showGrid: 0
-  density: 1000
-  waterHeight: 0.8
-  waterWidth: 0.6
-  waterDepth: 0.6
-  integrateParticlesShader: {fileID: 7200000, guid: 2d59760aa11c1ad25aa5c3d00560ee36, type: 3}
-  handleParticleCollisionsShader: {fileID: 7200000, guid: 66102594078db6ce199bcea2fafe1f46, type: 3}
-  gridResolution: 25
   occlusionRange: 15
   particleMaterial: {fileID: 2100000, guid: cee1f6ce7317f70a589ea42c6c9cd2c6, type: 2}
-  updateParticlePropertiesShader: {fileID: 7200000, guid: 1a6959fd79f0bf2b9b2938da1ad46a41, type: 3}
   generateObstaclesSDFShader: {fileID: 7200000, guid: f6dcb95491f7da075acb9d946ad3288a, type: 3}
   FastSweepingPasses: 3
 --- !u!65 &40513130
@@ -690,7 +682,7 @@ Transform:
   m_GameObject: {fileID: 910470839}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.074, y: -0.063, z: 0.078}
+  m_LocalPosition: {x: 0.074, y: -0.063, z: 2.711}
   m_LocalScale: {x: 0.25, y: 0.25, z: 0.25}
   m_ConstrainProportionsScale: 0
   m_Children: []
