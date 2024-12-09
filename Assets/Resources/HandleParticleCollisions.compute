@@ -12,9 +12,12 @@ RWStructuredBuffer<float3> _ParticleVel;
 // Parameters
 float3 _SimOrigin;
 float3 _FDimensions;
+float3 _ObstaclePos;
+float3 _ObstacleVel;
 float _ParticleRadius;
 float _CellSpacing;
 float _NumParticles;
+float _ObstacleRadius;
 // float _CellInvSpacing;
 // float _TimeStep;
 
@@ -43,6 +46,9 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     }
 
     int index = id.x;
+
+    float minDist = _ObstacleRadius + _ParticleRadius;
+    float minDist2 = minDist * minDist;
 
     float minX = _SimOrigin.x + _CellSpacing + _ParticleRadius;
     float maxX = _SimOrigin.x + (_FDimensions.x - 1) * _CellSpacing - _ParticleRadius;
@@ -86,6 +92,14 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     // }
 
     float3 pos = _ParticlePos[index];
+    
+    float3 d = pos - _ObstaclePos;
+    float d2 = dot(d, d);
+
+    if (d2 < minDist2)
+    {
+        _ParticleVel[index] = _ObstacleVel; 
+    }
 
     if (pos.x < minX)
     {

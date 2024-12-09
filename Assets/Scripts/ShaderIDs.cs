@@ -6,6 +6,7 @@ public class ShaderIDs
     public static readonly int FDimensions = Shader.PropertyToID("_FDimensions");
     public static readonly int ParticlePos = Shader.PropertyToID("_ParticlePos");
     public static readonly int ParticleRadius = Shader.PropertyToID("_ParticleRadius");
+    public static readonly int ObstacleRadius = Shader.PropertyToID("_ObstacleRadius");
     public static readonly int CellSpacing = Shader.PropertyToID("_CellSpacing");
     public static readonly int CellInvSpacing = Shader.PropertyToID("_CellInvSpacing");
     public static readonly int TimeStep = Shader.PropertyToID("_TimeStep");
@@ -32,4 +33,6 @@ public class ShaderIDs
     public static readonly int ColorDiffusionCoeff = Shader.PropertyToID("_ColorDiffusionCoeff");
     public static readonly int MinDist = Shader.PropertyToID("_MinDist");
     public static readonly int MinDist2 = Shader.PropertyToID("_MinDist2");
+    public static readonly int ObstaclePos = Shader.PropertyToID("_ObstaclePos");
+    public static readonly int ObstacleVel = Shader.PropertyToID("_ObstacleVel");
 }

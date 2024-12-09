@@ -42,8 +42,10 @@ public class FlipSimulation : MonoBehaviour
     public Material particleMaterial;
 
     [Header("Obstacles")]
-    public ComputeShader generateObstaclesSDFShader;
-    public int FastSweepingPasses = 3;
+    public GameObject obstacle;
+    private Vector3 obstacleVel;
+    // public ComputeShader generateObstaclesSDFShader;
+    // public int FastSweepingPasses = 3;
 
     #endregion
 
@@ -55,7 +57,7 @@ public class FlipSimulation : MonoBehaviour
     private Bounds _bounds;
 
     // Obstacles
-    private ComputeBuffer _obstaclesSDF;
+    // private ComputeBuffer _obstaclesSDF;
 
     #endregion
 
@@ -151,13 +153,18 @@ public class FlipSimulation : MonoBehaviour
                 }
             }
         }
+
+        SetObstacle(new(0.25f, 0.0f, 0.25f), true);
     }
 
     void Update()
     {
         // _obstaclesSDF = new ComputeBuffer(fluid.fNumCells, sizeof(float));
 
-        fluid.Simulate(dt, gravity, flipRatio, numPressureIters, numParticleIters, overRelaxation, compensateDrift, separateParticles, _meshPropertiesBuffer);
+        Vector3 obstacleScale = obstacle.transform.localScale;
+        float obstacleRadius = Mathf.Max(obstacleScale.x, obstacleScale.y, obstacleScale.z) / 2;
+
+        fluid.Simulate(dt, gravity, flipRatio, numPressureIters, numParticleIters, overRelaxation, compensateDrift, separateParticles, obstacle.transform.position, obstacleVel, obstacleRadius, _meshPropertiesBuffer);
 
         // foreach (MeshFilter meshFilter in FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
         // {
@@ -174,10 +181,52 @@ public class FlipSimulation : MonoBehaviour
         fluid.Destroy();
         _meshPropertiesBuffer?.Release();
         _argsBuffer?.Release();
-        _obstaclesSDF?.Release();
+        // _obstaclesSDF?.Release();
     }
 
     #region Simulation
+
+    public void SetObstacle(Vector3 position, bool reset)
+    {
+        Vector3 vel = Vector3.zero;
+
+        if (!reset)
+            vel = (position - obstacle.transform.position) / dt;
+
+        obstacle.transform.position = position;
+        Vector3 scale = obstacle.transform.localScale;
+        float r = Mathf.Max(scale.x, scale.y, scale.z) / 2;
+        var n = fluid.fDimensions.y;
+        var m = fluid.fDimensions.z;
+
+        for (int i = 0; i < fluid.fDimensions.x; i++)
+        {
+            for (int j = 0; j < fluid.fDimensions.y; j++)
+            {
+                for (int k = 0; k < fluid.fDimensions.z; k++)
+                {
+                    fluid.s[i * n * m + j * m + k] = 1.0f;
+
+                    float dx = (i + 0.5f) * fluid.h - position.x;
+                    float dy = (j + 0.5f) * fluid.h - position.y;
+                    float dz = (k + 0.5f) * fluid.h - position.z;
+
+                    if (dx * dx + dy * dy + dz * dz < r * r)
+                    {
+                        fluid.s[i * n * m + j * m + k] = 0.0f;
+                        fluid.u[i * n * m + j * m + k] = vel.x;
+                        fluid.u[(i + 1) * n * m + j * m + k] = vel.x;
+                        fluid.v[i * n * m + j * m + k] = vel.y;
+                        fluid.v[i * n * m + (j + 1) * m + k] = vel.y;
+                        fluid.w[i * n * m + j * m + k] = vel.z;
+                        fluid.w[i * n * m + j * m + k + 1] = vel.z;
+                    }
+                }
+            }
+        }
+
+        obstacleVel = vel;
+    }
 
     // private void GenerateObstaclesSDF(MeshFilter meshFilter)
     // {

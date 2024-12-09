@@ -117,12 +117,12 @@ public class Fluid
         cellParticleIds = new ComputeBuffer(maxParticles, sizeof(int));
     }
 
-    public void Simulate(float dt, float gravity, float flipRatio, int numPressureIters, int numParticleIters, float overRelaxation, bool compensateDrift, bool separateParticles, ComputeBuffer meshPropertiesBuffer)
+    public void Simulate(float dt, float gravity, float flipRatio, int numPressureIters, int numParticleIters, float overRelaxation, bool compensateDrift, bool separateParticles, Vector3 obstaclePos, Vector3 obstacleVel, float obstacleRadius, ComputeBuffer meshPropertiesBuffer)
     {
         IntegrateParticles(dt, gravity);
         if (separateParticles)
             PushParticlesApart();
-        HandleParticleCollisions(); // TODO: handle obstacle collisions
+        HandleParticleCollisions(obstaclePos, obstacleVel, obstacleRadius); // TODO: handle obstacle collisions
         UpdateMeshProperties(meshPropertiesBuffer);
     }
 
@@ -205,9 +205,10 @@ public class Fluid
         pushParticlesApartShader.Dispatch(countKernel, Mathf.CeilToInt((float)numParticles / NumThreads), 1, 1);
     }
 
-    private void HandleParticleCollisions()
+    private void HandleParticleCollisions(Vector3 obstaclePos, Vector3 obstacleVel, float obstacleRadius)
     {
         handleParticleCollisionsShader.SetFloat(ShaderIDs.ParticleRadius, particleRadius);
+        handleParticleCollisionsShader.SetFloat(ShaderIDs.ObstacleRadius, obstacleRadius);
         handleParticleCollisionsShader.SetFloat(ShaderIDs.CellSpacing, h);
         handleParticleCollisionsShader.SetFloat(ShaderIDs.NumParticles, numParticles);
         // handleParticleCollisionsShader.SetFloat(ShaderIDs.CellInvSpacing, fInvSpacing);
@@ -215,6 +216,8 @@ public class Fluid
 
         handleParticleCollisionsShader.SetVector(ShaderIDs.FDimensions, (Vector3)fDimensions);
         handleParticleCollisionsShader.SetVector(ShaderIDs.SimOrigin, simOrigin);
+        handleParticleCollisionsShader.SetVector(ShaderIDs.ObstaclePos, obstaclePos);
+        handleParticleCollisionsShader.SetVector(ShaderIDs.ObstacleVel, obstacleVel);
 
         handleParticleCollisionsShader.SetBuffer(0, ShaderIDs.ParticlePos, particlePosBuffer);
         handleParticleCollisionsShader.SetBuffer(0, ShaderIDs.ParticleVel, particleVelBuffer);
