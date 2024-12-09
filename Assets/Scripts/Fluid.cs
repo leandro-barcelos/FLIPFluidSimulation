@@ -24,10 +24,13 @@ public class Fluid
 
     public float[] u { get; set; }
     public float[] v { get; set; }
+    public float[] w { get; set; }
     public float[] du { get; set; }
     public float[] dv { get; set; }
+    public float[] dw { get; set; }
     public float[] prevU { get; set; }
     public float[] prevV { get; set; }
+    public float[] prevW { get; set; }
     public float[] p { get; set; }
     public float[] s { get; set; }
     public ComputeBuffer cellTypeBuffer { get; set; }
@@ -79,10 +82,13 @@ public class Fluid
 
         u = new float[fNumCells];
         v = new float[fNumCells];
+        w = new float[fNumCells];
         du = new float[fNumCells];
         dv = new float[fNumCells];
+        dw = new float[fNumCells];
         prevU = new float[fNumCells];
         prevV = new float[fNumCells];
+        prevW = new float[fNumCells];
         p = new float[fNumCells];
         s = new float[fNumCells];
         cellColor = new Color[fNumCells];
