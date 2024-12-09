@@ -9,8 +9,9 @@ public class Fluid
     public enum CellType
     {
         Fluid,
-        Solid,
-        Air
+        Air,
+        Solid
+
     }
 
     public Vector3 simOrigin { get; set; }

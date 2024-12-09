@@ -3,8 +3,8 @@
 #pragma enable_d3d11_debug_symbols
 
 #define FLUID 0
-#define SOLID 1
-#define AIR   2
+#define AIR   1
+#define SOLID 2
 
 // Buffers
 RWStructuredBuffer<int> _CellType;
