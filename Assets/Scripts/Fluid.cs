@@ -278,6 +278,7 @@ public class Fluid
         setObstacleShader.SetFloat(ShaderIDs.ObstacleRadius, obstacleRadius);
         setObstacleShader.SetVector(ShaderIDs.ObstaclePos, obstaclePos);
         setObstacleShader.SetVector(ShaderIDs.ObstacleVel, obstacleVel);
+        setObstacleShader.SetVector(ShaderIDs.FDimensions, (Vector3)fDimensions);
 
         setObstacleShader.SetBuffer(0, ShaderIDs.S, sBuffer);
         setObstacleShader.SetBuffer(0, ShaderIDs.U, uBuffer);
