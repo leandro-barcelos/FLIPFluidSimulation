@@ -114,6 +114,8 @@ public class Fluid
         // Initialize ComputeBuffers
         particlePosBuffer = new ComputeBuffer(maxParticles, sizeof(float) * 3);
         particleVelBuffer = new ComputeBuffer(maxParticles, sizeof(float) * 3);
+        float[] initialVelocities = new float[maxParticles * 3];
+        particleVelBuffer.SetData(initialVelocities);
         particleColorBuffer = new ComputeBuffer(maxParticles, sizeof(float) * 4);
         particleColorBuffer.SetData(particleColor);
         cellTypeBuffer = new ComputeBuffer(fNumCells, sizeof(int));
