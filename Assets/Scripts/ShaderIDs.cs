@@ -42,4 +42,13 @@ public class ShaderIDs
     public static readonly int U = Shader.PropertyToID("_U");
     public static readonly int V = Shader.PropertyToID("_V");
     public static readonly int W = Shader.PropertyToID("_W");
+    public static readonly int PrevU = Shader.PropertyToID("_PrevU");
+    public static readonly int PrevV = Shader.PropertyToID("_PrevV");
+    public static readonly int PrevW = Shader.PropertyToID("_PrevW");
+    public static readonly int Dx = Shader.PropertyToID("_Dx");
+    public static readonly int Dy = Shader.PropertyToID("_Dy");
+    public static readonly int Dz = Shader.PropertyToID("_Dz");
+    public static readonly int Component = Shader.PropertyToID("_Component");
+    public static readonly int F = Shader.PropertyToID("_F");
+    public static readonly int D = Shader.PropertyToID("_D");
 }

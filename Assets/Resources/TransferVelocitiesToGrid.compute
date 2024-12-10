@@ -1,0 +1,144 @@
+#define NUM_THREADS 8
+
+#pragma enable_d3d11_debug_symbols
+
+#define FLUID 0
+#define AIR   1
+#define SOLID 2
+
+// Buffers
+StructuredBuffer<float3> _ParticlePos;
+StructuredBuffer<float3> _ParticleVel;
+StructuredBuffer<int> _CellType;
+StructuredBuffer<float> _PrevU;
+StructuredBuffer<float> _PrevV;
+StructuredBuffer<float> _PrevW;
+RWStructuredBuffer<float> _U;
+RWStructuredBuffer<float> _V;
+RWStructuredBuffer<float> _W;
+RWStructuredBuffer<float> _F;
+RWStructuredBuffer<float> _D;
+
+// Parameters
+float3 _FDimensions;
+float3 _SimOrigin;
+float _H;
+float _Dx;
+float _Dy;
+float _Dz;
+float _FInvSpacing;
+int _NumParticles;
+int _Component;
+int _FNumCells;
+
+#pragma kernel CSMain
+
+[numthreads(NUM_THREADS, 1, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    if ((int)id.x >= _NumParticles)
+    {
+        return;
+    }
+
+    int index = id.x;
+    int n = _FDimensions.y;
+    int m = _FDimensions.z;
+
+    float3 pos = _ParticlePos[index];
+
+    pos = clamp(pos, _H, (_FDimensions - 1) * _H);
+
+    float3 cellPos = (pos - float3(_Dx, _Dy, _Dz) - _SimOrigin) * _FInvSpacing;
+    float3 cellMin = floor(cellPos);
+    float3 cellMax = min(cellMin + 1, _FDimensions - 2);
+
+    float3 t = (cellPos - cellMin) * _FInvSpacing;
+
+    float3 s = 1.0 - t;
+
+    float d0 = s.x * s.y * s.z;
+    float d1 = s.x * s.y * t.z;
+    float d2 = s.x * t.y * s.z;
+    float d3 = s.x * t.y * t.z;
+    float d4 = t.x * s.y * s.z;
+    float d5 = t.x * s.y * t.z;
+    float d6 = t.x * t.y * s.z;
+    float d7 = t.x * t.y * t.z;
+
+    float nr0 = cellMin.x * n * m + cellMin.y * m + cellMin.z;
+    float nr1 = cellMin.x * n * m + cellMin.y * m + cellMax.z;
+    float nr2 = cellMin.x * n * m + cellMax.y * m + cellMin.z;
+    float nr3 = cellMin.x * n * m + cellMax.y * m + cellMax.z;
+    float nr4 = cellMax.x * n * m + cellMin.y * m + cellMin.z;
+    float nr5 = cellMax.x * n * m + cellMin.y * m + cellMax.z;
+    float nr6 = cellMax.x * n * m + cellMax.y * m + cellMin.z;
+    float nr7 = cellMax.x * n * m + cellMax.y * m + cellMax.z;
+
+    float comp = _ParticleVel[index][_Component];
+
+    _F[nr0] += comp * d0;
+    _D[nr0] += d0;
+
+    _F[nr1] += comp * d1;
+    _D[nr1] += d1;
+
+    _F[nr2] += comp * d2;
+    _D[nr2] += d2;
+
+    _F[nr3] += comp * d3;
+    _D[nr3] += d3;
+
+    _F[nr4] += comp * d4;
+    _D[nr4] += d4;
+
+    _F[nr5] += comp * d5;
+    _D[nr5] += d5;
+
+    _F[nr6] += comp * d6;
+    _D[nr6] += d6;
+
+    _F[nr7] += comp * d7;
+    _D[nr7] += d7;
+}
+
+#pragma kernel AdjustF
+
+[numthreads(NUM_THREADS, 1, 1)]
+void AdjustF(uint3 id : SV_DispatchThreadID)
+{
+    if ((int)id.x >= _FNumCells)
+    {
+        return;
+    }
+
+    int index = id.x;
+
+    if (_D[index] > 0.0)
+        _F[index] /= _D[index];
+}
+
+#pragma kernel RestoreSolid
+
+[numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
+void RestoreSolid(uint3 id : SV_DispatchThreadID)
+{
+    if (any((int)id >= _FDimensions))
+    {
+        return;
+    }
+
+    int n = _FDimensions.y;
+    int m = _FDimensions.z;
+
+    int index = id.x * n * m + id.y * m + id.z;
+
+    bool solid = _CellType[index] == SOLID;
+
+    if (solid || (id.x > 0 && _CellType[(id.x - 1) * n * m + id.y * m + id.z] == SOLID))
+        _U[index] = _PrevU[index];
+    if (solid || (id.y > 0 && _CellType[id.x * n * m + (id.y - 1) * m + id.z] == SOLID))
+        _V[index] = _PrevV[index];
+    if (solid || (id.z > 0 && _CellType[id.x * n * m + id.y * m + id.z - 1] == SOLID))
+        _W[index] = _PrevW[index];
+}

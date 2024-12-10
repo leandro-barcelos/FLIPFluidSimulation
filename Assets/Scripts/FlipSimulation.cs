@@ -25,6 +25,7 @@ public class FlipSimulation : MonoBehaviour
     #region Public Variables
 
     [Header("Simulation Parameters")]
+    public int gridResolution = 25;
     public float gravity = -9.81f;
     public float dt = 1.0f / 60.0f;
     [Range(0f, 1f)] public float flipRatio = 0.9f;
@@ -63,8 +64,6 @@ public class FlipSimulation : MonoBehaviour
 
     void Start()
     {
-        int gridResolution = 25;
-
         var tankDimensions = 1.0f * transform.localScale;
 
         var cellSpacing = tankDimensions.y / gridResolution;
