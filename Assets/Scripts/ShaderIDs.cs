@@ -50,5 +50,7 @@ public class ShaderIDs
     public static readonly int Dz = Shader.PropertyToID("_Dz");
     public static readonly int Component = Shader.PropertyToID("_Component");
     public static readonly int F = Shader.PropertyToID("_F");
+    public static readonly int PrevF = Shader.PropertyToID("_PrevF");
     public static readonly int D = Shader.PropertyToID("_D");
+    public static readonly int FlipRatio = Shader.PropertyToID("_FlipRatio");
 }

@@ -64,7 +64,7 @@ public class Fluid
     private ComputeShader updateParticlePropertiesShader;
     private ComputeShader updateCellTypeShader;
     private ComputeShader setObstacleShader;
-    private ComputeShader transferVelocitiesToGridShader;
+    private ComputeShader transferVelocitiesShader;
     private void LoadShaders()
     {
         integrateParticlesShader = Resources.Load<ComputeShader>("IntegrateParticle");
@@ -73,7 +73,7 @@ public class Fluid
         updateParticlePropertiesShader = Resources.Load<ComputeShader>("UpdateParticleProperties");
         updateCellTypeShader = Resources.Load<ComputeShader>("UpdateCellType");
         setObstacleShader = Resources.Load<ComputeShader>("SetObstacle");
-        transferVelocitiesToGridShader = Resources.Load<ComputeShader>("TransferVelocitiesToGrid");
+        transferVelocitiesShader = Resources.Load<ComputeShader>("TransferVelocities");
     }
 
     public Fluid(Vector3 simOrigin, float density, Vector3 dimentions, float spacing, float particleRadius, int maxParticles)
@@ -130,8 +130,8 @@ public class Fluid
         if (separateParticles)
             PushParticlesApart();
         HandleParticleCollisions(obstaclePos, obstacleVel, obstacleRadius); // TODO: handle obstacle collisions
-        UpdateCellType();
         TransferVelocitiesToGrid();
+        TransferVelocitiesToParticles(flipRatio);
         UpdateMeshProperties(meshPropertiesBuffer);
     }
 
@@ -290,21 +290,37 @@ public class Fluid
 
     private void TransferVelocitiesToGrid()
     {
+        // Reset buffers
+        prevUBuffer?.Release();
+        prevVBuffer?.Release();
+        prevWBuffer?.Release();
+
         prevUBuffer = uBuffer;
-        uBuffer = new ComputeBuffer(fNumCells, sizeof(float));
         prevVBuffer = vBuffer;
-        vBuffer = new ComputeBuffer(fNumCells, sizeof(float));
         prevWBuffer = wBuffer;
+
+        uBuffer = new ComputeBuffer(fNumCells, sizeof(float));
+        vBuffer = new ComputeBuffer(fNumCells, sizeof(float));
         wBuffer = new ComputeBuffer(fNumCells, sizeof(float));
+
+        float[] init = new float[fNumCells];
+        uBuffer.SetData(init);
+        vBuffer.SetData(init);
+        wBuffer.SetData(init);
+        duBuffer.SetData(init);
+        dvBuffer.SetData(init);
+        dwBuffer.SetData(init);
+
+        UpdateCellType();
 
         float h2 = h * 0.5f;
 
-        transferVelocitiesToGridShader.SetVector(ShaderIDs.FDimensions, (Vector3)fDimensions);
-        transferVelocitiesToGridShader.SetVector(ShaderIDs.SimOrigin, simOrigin);
-        transferVelocitiesToGridShader.SetFloat(ShaderIDs.H, h);
-        transferVelocitiesToGridShader.SetFloat(ShaderIDs.FInvSpacing, fInvSpacing);
-        transferVelocitiesToGridShader.SetInt(ShaderIDs.NumParticles, numParticles);
-        transferVelocitiesToGridShader.SetInt(ShaderIDs.FNumCells, fNumCells);
+        transferVelocitiesShader.SetVector(ShaderIDs.FDimensions, (Vector3)fDimensions);
+        transferVelocitiesShader.SetVector(ShaderIDs.SimOrigin, simOrigin);
+        transferVelocitiesShader.SetFloat(ShaderIDs.H, h);
+        transferVelocitiesShader.SetFloat(ShaderIDs.FInvSpacing, fInvSpacing);
+        transferVelocitiesShader.SetInt(ShaderIDs.NumParticles, numParticles);
+        transferVelocitiesShader.SetInt(ShaderIDs.FNumCells, fNumCells);
 
         for (int component = 0; component < 3; component++)
         {
@@ -333,40 +349,100 @@ public class Fluid
                     break;
             }
 
-            transferVelocitiesToGridShader.SetInt(ShaderIDs.Component, component);
-            transferVelocitiesToGridShader.SetFloat(ShaderIDs.Dx, dx);
-            transferVelocitiesToGridShader.SetFloat(ShaderIDs.Dy, dy);
-            transferVelocitiesToGridShader.SetFloat(ShaderIDs.Dz, dz);
+            transferVelocitiesShader.SetInt(ShaderIDs.Component, component);
+            transferVelocitiesShader.SetFloat(ShaderIDs.Dx, dx);
+            transferVelocitiesShader.SetFloat(ShaderIDs.Dy, dy);
+            transferVelocitiesShader.SetFloat(ShaderIDs.Dz, dz);
 
-            int mainKernel = transferVelocitiesToGridShader.FindKernel("CSMain");
-            transferVelocitiesToGridShader.SetBuffer(mainKernel, ShaderIDs.ParticleVel, particleVelBuffer);
-            transferVelocitiesToGridShader.SetBuffer(mainKernel, ShaderIDs.ParticlePos, particlePosBuffer);
-            transferVelocitiesToGridShader.SetBuffer(mainKernel, ShaderIDs.F, f);
-            transferVelocitiesToGridShader.SetBuffer(mainKernel, ShaderIDs.D, d);
+            int gridKernel = transferVelocitiesShader.FindKernel("ToGrid");
+            transferVelocitiesShader.SetBuffer(gridKernel, ShaderIDs.ParticleVel, particleVelBuffer);
+            transferVelocitiesShader.SetBuffer(gridKernel, ShaderIDs.ParticlePos, particlePosBuffer);
+            transferVelocitiesShader.SetBuffer(gridKernel, ShaderIDs.F, f);
+            transferVelocitiesShader.SetBuffer(gridKernel, ShaderIDs.D, d);
 
-            transferVelocitiesToGridShader.Dispatch(mainKernel,
+            transferVelocitiesShader.Dispatch(gridKernel,
             Mathf.CeilToInt((float)numParticles / NumThreads), 1, 1);
 
-            int adjustKernel = transferVelocitiesToGridShader.FindKernel("AdjustF");
-            transferVelocitiesToGridShader.SetBuffer(adjustKernel, ShaderIDs.F, f);
-            transferVelocitiesToGridShader.SetBuffer(adjustKernel, ShaderIDs.D, d);
+            int adjustKernel = transferVelocitiesShader.FindKernel("AdjustF");
+            transferVelocitiesShader.SetBuffer(adjustKernel, ShaderIDs.F, f);
+            transferVelocitiesShader.SetBuffer(adjustKernel, ShaderIDs.D, d);
 
-            transferVelocitiesToGridShader.Dispatch(adjustKernel,
+            transferVelocitiesShader.Dispatch(adjustKernel,
             Mathf.CeilToInt((float)fNumCells / NumThreads), 1, 1);
 
-            int restoreKernel = transferVelocitiesToGridShader.FindKernel("RestoreSolid");
-            transferVelocitiesToGridShader.SetBuffer(restoreKernel, ShaderIDs.F, f);
-            transferVelocitiesToGridShader.SetBuffer(restoreKernel, ShaderIDs.D, d);
-            transferVelocitiesToGridShader.SetBuffer(restoreKernel, ShaderIDs.U, uBuffer);
-            transferVelocitiesToGridShader.SetBuffer(restoreKernel, ShaderIDs.V, vBuffer);
-            transferVelocitiesToGridShader.SetBuffer(restoreKernel, ShaderIDs.W, wBuffer);
-            transferVelocitiesToGridShader.SetBuffer(restoreKernel, ShaderIDs.PrevU, prevUBuffer);
-            transferVelocitiesToGridShader.SetBuffer(restoreKernel, ShaderIDs.PrevV, prevVBuffer);
-            transferVelocitiesToGridShader.SetBuffer(restoreKernel, ShaderIDs.PrevW, prevWBuffer);
-            transferVelocitiesToGridShader.SetBuffer(restoreKernel, ShaderIDs.CellType, cellTypeBuffer);
+            int restoreKernel = transferVelocitiesShader.FindKernel("RestoreSolid");
+            transferVelocitiesShader.SetBuffer(restoreKernel, ShaderIDs.F, f);
+            transferVelocitiesShader.SetBuffer(restoreKernel, ShaderIDs.D, d);
+            transferVelocitiesShader.SetBuffer(restoreKernel, ShaderIDs.U, uBuffer);
+            transferVelocitiesShader.SetBuffer(restoreKernel, ShaderIDs.V, vBuffer);
+            transferVelocitiesShader.SetBuffer(restoreKernel, ShaderIDs.W, wBuffer);
+            transferVelocitiesShader.SetBuffer(restoreKernel, ShaderIDs.PrevU, prevUBuffer);
+            transferVelocitiesShader.SetBuffer(restoreKernel, ShaderIDs.PrevV, prevVBuffer);
+            transferVelocitiesShader.SetBuffer(restoreKernel, ShaderIDs.PrevW, prevWBuffer);
+            transferVelocitiesShader.SetBuffer(restoreKernel, ShaderIDs.CellType, cellTypeBuffer);
 
-            transferVelocitiesToGridShader.Dispatch(restoreKernel,
+            transferVelocitiesShader.Dispatch(restoreKernel,
             Mathf.CeilToInt((float)fDimensions.x / NumThreads), Mathf.CeilToInt((float)fDimensions.y / NumThreads), Mathf.CeilToInt((float)fDimensions.z / NumThreads));
+
+        }
+    }
+
+    private void TransferVelocitiesToParticles(float flipRatio)
+    {
+        float h2 = h * 0.5f;
+
+        transferVelocitiesShader.SetVector(ShaderIDs.FDimensions, (Vector3)fDimensions);
+        transferVelocitiesShader.SetVector(ShaderIDs.SimOrigin, simOrigin);
+        transferVelocitiesShader.SetFloat(ShaderIDs.H, h);
+        transferVelocitiesShader.SetFloat(ShaderIDs.FInvSpacing, fInvSpacing);
+        transferVelocitiesShader.SetFloat(ShaderIDs.FlipRatio, flipRatio);
+        transferVelocitiesShader.SetInt(ShaderIDs.NumParticles, numParticles);
+        transferVelocitiesShader.SetInt(ShaderIDs.FNumCells, fNumCells);
+
+        for (int component = 0; component < 3; component++)
+        {
+            float dx, dy, dz;
+            ComputeBuffer f, d, prevF;
+
+            switch (component)
+            {
+                case 0:
+                    dx = 0f;
+                    dy = dz = h2;
+                    f = uBuffer;
+                    prevF = prevUBuffer;
+                    d = duBuffer;
+                    break;
+                case 1:
+                    dy = 0f;
+                    dx = dz = h2;
+                    f = vBuffer;
+                    prevF = prevVBuffer;
+                    d = dvBuffer;
+                    break;
+                default:
+                    dz = 0f;
+                    dy = dx = h2;
+                    f = wBuffer;
+                    prevF = prevWBuffer;
+                    d = dwBuffer;
+                    break;
+            }
+
+            transferVelocitiesShader.SetInt(ShaderIDs.Component, component);
+            transferVelocitiesShader.SetFloat(ShaderIDs.Dx, dx);
+            transferVelocitiesShader.SetFloat(ShaderIDs.Dy, dy);
+            transferVelocitiesShader.SetFloat(ShaderIDs.Dz, dz);
+
+            int particlesKernel = transferVelocitiesShader.FindKernel("ToParticles");
+            transferVelocitiesShader.SetBuffer(particlesKernel, ShaderIDs.ParticleVel, particleVelBuffer);
+            transferVelocitiesShader.SetBuffer(particlesKernel, ShaderIDs.ParticlePos, particlePosBuffer);
+            transferVelocitiesShader.SetBuffer(particlesKernel, ShaderIDs.F, f);
+            transferVelocitiesShader.SetBuffer(particlesKernel, ShaderIDs.PrevF, prevF);
+            transferVelocitiesShader.SetBuffer(particlesKernel, ShaderIDs.CellType, cellTypeBuffer);
+
+            transferVelocitiesShader.Dispatch(particlesKernel,
+            Mathf.CeilToInt((float)numParticles / NumThreads), 1, 1);
         }
     }
 
@@ -380,9 +456,9 @@ public class Fluid
         numCellParticles.Release();
         firstCellParticle.Release();
         cellParticleIds.Release();
-        uBuffer.Release();
-        vBuffer.Release();
-        wBuffer.Release();
+        uBuffer?.Dispose();
+        vBuffer?.Dispose();
+        wBuffer?.Dispose();
         duBuffer.Release();
         dvBuffer.Release();
         dwBuffer.Release();
