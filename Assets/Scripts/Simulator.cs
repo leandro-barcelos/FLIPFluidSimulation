@@ -12,10 +12,6 @@ public class Simulator
 
     public int particleDensity = 0;
 
-    public int velocityTextureWidth, velocityTextureHeight;
-
-    public int scalarTextureWidth, scalarTextureHeight;
-
     // Parameters
     public float flipness = 0.99f;
     public int frameNumber = 0;
@@ -53,12 +49,6 @@ public class Simulator
 
         this.particleDensity = particleDensity;
 
-        velocityTextureWidth = (gridResolutionX + 1) * (gridResolutionZ + 1);
-        velocityTextureHeight = gridResolutionY + 1;
-
-        scalarTextureWidth = gridResolutionX * gridResolutionZ;
-        scalarTextureHeight = gridResolutionY;
-
         InitializeBuffers();
         InitializeParticleTextures(particlePositions);
         InitializeSimulationTextures();
@@ -67,21 +57,21 @@ public class Simulator
     private void InitializeSimulationTextures()
     {
         // Create simulation textures
-        velocityTexture = CreateRenderTexture(velocityTextureWidth, velocityTextureHeight, RenderTextureFormat.ARGBHalf);
+        velocityTexture = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.ARGBHalf);
 
-        tempVelocityTexture = CreateRenderTexture(velocityTextureWidth, velocityTextureHeight, RenderTextureFormat.ARGBHalf);
+        tempVelocityTexture = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.ARGBHalf);
 
-        originalVelocityTexture = CreateRenderTexture(velocityTextureWidth, velocityTextureHeight, RenderTextureFormat.ARGBHalf);
+        originalVelocityTexture = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.ARGBHalf);
 
-        weightTexture = CreateRenderTexture(velocityTextureWidth, velocityTextureHeight, RenderTextureFormat.ARGBHalf);
+        weightTexture = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.ARGBHalf);
 
-        markerTexture = CreateRenderTexture(scalarTextureWidth, scalarTextureHeight, RenderTextureFormat.ARGBHalf);
+        markerTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.ARGBHalf);
 
-        divergenceTexture = CreateRenderTexture(scalarTextureWidth, scalarTextureHeight, RenderTextureFormat.ARGBHalf);
+        divergenceTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.ARGBHalf);
 
-        pressureTexture = CreateRenderTexture(scalarTextureWidth, scalarTextureHeight, RenderTextureFormat.ARGBHalf);
+        pressureTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.ARGBHalf);
 
-        tempSimulationTexture = CreateRenderTexture(scalarTextureWidth, scalarTextureHeight, RenderTextureFormat.ARGBHalf);
+        tempSimulationTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.ARGBHalf);
     }
 
     private void InitializeParticleTextures(Vector3[] particlePositions)
@@ -109,17 +99,17 @@ public class Simulator
         }
 
         Texture2D particlePositionsTexture2D = CreateTexture2D(particlesWidth, particlesHeight, particlePositionsData);
-        particlePositionTexture = CreateRenderTexture(particlesWidth, particlesHeight, RenderTextureFormat.ARGBFloat);
+        particlePositionTexture = CreateRenderTexture2D(particlesWidth, particlesHeight, RenderTextureFormat.ARGBFloat);
         Graphics.Blit(particlePositionsTexture2D, particlePositionTexture);
 
-        particlePositionTextureTemp = CreateRenderTexture(particlesWidth, particlesHeight, RenderTextureFormat.ARGBFloat);
+        particlePositionTextureTemp = CreateRenderTexture2D(particlesWidth, particlesHeight, RenderTextureFormat.ARGBFloat);
 
-        particleVelocityTexture = CreateRenderTexture(particlesWidth, particlesHeight, RenderTextureFormat.ARGBHalf);
+        particleVelocityTexture = CreateRenderTexture2D(particlesWidth, particlesHeight, RenderTextureFormat.ARGBHalf);
 
-        particleVelocityTextureTemp = CreateRenderTexture(particlesWidth, particlesHeight, RenderTextureFormat.ARGBHalf);
+        particleVelocityTextureTemp = CreateRenderTexture2D(particlesWidth, particlesHeight, RenderTextureFormat.ARGBHalf);
 
         Texture2D particleRandomsTexture2D = CreateTexture2D(particlesWidth, particlesHeight, particleRandoms);
-        particleRandomTexture = CreateRenderTexture(particlesWidth, particlesHeight, RenderTextureFormat.ARGBFloat);
+        particleRandomTexture = CreateRenderTexture2D(particlesWidth, particlesHeight, RenderTextureFormat.ARGBFloat);
         Graphics.Blit(particleRandomsTexture2D, particleRandomTexture);
     }
 
@@ -167,10 +157,24 @@ public class Simulator
         (b, a) = (a, b);
     }
 
-    private static RenderTexture CreateRenderTexture(int width, int height, RenderTextureFormat format)
+    private static RenderTexture CreateRenderTexture2D(int width, int height, RenderTextureFormat format)
     {
         var rt = new RenderTexture(width, height, 0, format)
         {
+            enableRandomWrite = true,
+            filterMode = FilterMode.Point,
+            wrapMode = TextureWrapMode.Clamp
+        };
+        rt.Create();
+        return rt;
+    }
+
+    private static RenderTexture CreateRenderTexture3D(int width, int height, int depth, RenderTextureFormat format)
+    {
+        var rt = new RenderTexture(width, height, 0, format)
+        {
+            dimension = TextureDimension.Tex3D,
+            volumeDepth = depth,
             enableRandomWrite = true,
             filterMode = FilterMode.Point,
             wrapMode = TextureWrapMode.Clamp

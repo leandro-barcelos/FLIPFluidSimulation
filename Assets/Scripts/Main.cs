@@ -54,7 +54,7 @@ public class Parti : MonoBehaviour
     private Bounds _bounds;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    private void Start()
     {
         transform.localScale = new(gridWidth, gridHeight, gridDepth);
 
@@ -136,7 +136,7 @@ public class Parti : MonoBehaviour
 
                 MeshProperties props = new()
                 {
-                    Mat = Matrix4x4.TRS(position, rotation, particleScale),
+                    Mat = Matrix4x4.TRS(position - transform.position, rotation, particleScale),
                     Color = Color.blue
                 };
 
@@ -170,7 +170,7 @@ public class Parti : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
         UpdateMouse(out Vector3 worldSpaceMouseRay, out Vector3 worldMouseVelocity);
 
