@@ -246,8 +246,8 @@ public class Simulator
             transferToGridShader.SetInt("_ZOffset", z);
 
             // Set textures
-            transferToGridShader.SetTexture(0, "_PositionTexture", particlePositionTexture);
-            transferToGridShader.SetTexture(0, "_VelocityTexture", particleVelocityTexture);
+            transferToGridShader.SetTexture(0, "_ParticlePositionTexture", particlePositionTexture);
+            transferToGridShader.SetTexture(0, "_ParticleVelocityTexture", particleVelocityTexture);
             transferToGridShader.SetTexture(0, "_GridOutput", weightTexture);
 
             // Dispatch the compute shader
@@ -263,8 +263,8 @@ public class Simulator
             transferToGridShader.SetInt("_ZOffset", z);
 
             // Set textures
-            transferToGridShader.SetTexture(0, "_PositionTexture", particlePositionTexture);
-            transferToGridShader.SetTexture(0, "_VelocityTexture", particleVelocityTexture);
+            transferToGridShader.SetTexture(0, "_ParticlePositionTexture", particlePositionTexture);
+            transferToGridShader.SetTexture(0, "_ParticleVelocityTexture", particleVelocityTexture);
             transferToGridShader.SetTexture(0, "_GridOutput", tempVelocityTexture);
 
             // Dispatch the compute shader
