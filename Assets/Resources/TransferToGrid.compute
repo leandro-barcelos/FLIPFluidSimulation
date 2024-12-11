@@ -1,0 +1,66 @@
+#define NUM_THREADS 8
+
+#pragma kernel CSMain
+
+// Textures
+Texture2D<float4> _PositionTexture;
+SamplerState sampler_PositionTexture;
+Texture2D<float4> _VelocityTexture;
+SamplerState sampler_VelocityTexture;
+RWTexture3D<float4> _GridOutput;
+
+// Constants
+float3 _GridSize;
+float3 _GridResolution;
+float2 _InvParticlesResolution;
+int _ZOffset;
+int _Accumulate; // 0 or 1
+
+// Helper functions
+float h(float r) {
+    return (r >= 0.0 && r <= 1.0) ? (1.0 - r) : ((r >= -1.0 && r <= 0.0) ? (1.0 + r) : 0.0);
+}
+
+float k(float3 v) {
+    return h(v.x) * h(v.y) * h(v.z);
+}
+
+float3 get3DCoord(uint3 id, float3 resolution) {
+    return float3(
+        id.x % resolution.x,
+        id.y,
+        floor(id.x / resolution.x) + 0.5
+    );
+}
+
+[numthreads(NUM_THREADS, NUM_THREADS, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID) {
+    float3 position = _PositionTexture.SampleLevel(sampler_PositionTexture, id.xy * _InvParticlesResolution, 0).xyz;
+    position = (position / _GridSize) * _GridResolution;
+
+    float3 velocity = _VelocityTexture.SampleLevel(sampler_VelocityTexture, id.xy * _InvParticlesResolution, 0).xyz;
+
+    // Compute grid cell and position
+    float3 cellIndex = floor(position);
+    cellIndex.z += _ZOffset;
+
+    float3 xPosition = float3(cellIndex.x, cellIndex.y + 0.5, cellIndex.z + 0.5);
+    float xWeight = k(position - xPosition);
+
+    float3 yPosition = float3(cellIndex.x + 0.5, cellIndex.y, cellIndex.z + 0.5);
+    float yWeight = k(position - yPosition);
+
+    float3 zPosition = float3(cellIndex.x + 0.5, cellIndex.y + 0.5, cellIndex.z);
+    float zWeight = k(position - zPosition);
+
+    float3 scalarPosition = float3(cellIndex.x + 0.5, cellIndex.y + 0.5, cellIndex.z + 0.5);
+    float scalarWeight = k(position - scalarPosition);
+
+    float4 output = 0.0;
+    if (_Accumulate == 0)
+        output = float4(xWeight, yWeight, zWeight, scalarWeight);
+    else if (_Accumulate == 1)
+        output = float4(xWeight * velocity.x, yWeight * velocity.y, zWeight * velocity.z, 0.0);
+    
+    _GridOutput[cellIndex] += output;
+}
