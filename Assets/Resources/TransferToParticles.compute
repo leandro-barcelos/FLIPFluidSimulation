@@ -1,0 +1,63 @@
+#define NUM_THREADS 8
+
+#pragma kernel CSMain
+
+// Textures
+Texture3D<float4> _VelocityTexture;
+SamplerState sampler_VelocityTexture;
+Texture3D<float4> _OriginalVelocityTexture;
+SamplerState sampler_OriginalVelocityTexture;
+Texture2D<float4> _ParticlePositionTexture;
+SamplerState sampler_ParticlePositionTexture;
+Texture2D<float4> _ParticleVelocityTexture;
+SamplerState sampler_ParticleVelocityTexture;
+RWTexture2D<float4> _ParticleVelocityTextureTemp;
+
+// Constants
+float3 _GridSize;
+float3 _GridResolution;
+float3 _InvGridResolution;
+float2 _InvParticleResolution;
+float _Flipness;
+
+// Helper functions
+float sampleXVelocity(Texture3D _texture, SamplerState _sampler, float3 position) {
+    float3 cellIndex = position + float3(0.0, -0.5, -0.5);
+    return _texture.SampleLevel(_sampler, cellIndex * _InvGridResolution, 0).x;
+}
+
+float sampleYVelocity(Texture3D _texture, SamplerState _sampler, float3 position) {
+    float3 cellIndex = position + float3(-0.5, 0.0, -0.5);
+    return _texture.SampleLevel(_sampler, cellIndex * _InvGridResolution, 0).y;
+}
+
+float sampleZVelocity(Texture3D _texture, SamplerState _sampler, float3 position) {
+    float3 cellIndex = position + float3(-0.5, -0.5, 0.0);
+    return _texture.SampleLevel(_sampler, cellIndex * _InvGridResolution, 0).z;
+}
+
+float3 sampleVelocity(Texture3D _texture, SamplerState _sampler, float3 position)
+{
+    return float3(sampleXVelocity(_texture, _sampler, position), sampleYVelocity(_texture, _sampler, position), sampleZVelocity(_texture, _sampler, position));
+}
+
+[numthreads(NUM_THREADS, NUM_THREADS, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID) {
+    float3 particlePosition = _ParticlePositionTexture.SampleLevel(sampler_ParticlePositionTexture, id.xy * _InvParticleResolution, 0).xyz;
+    particlePosition = (particlePosition / _GridSize) * _GridResolution;
+
+    float3 particleVelocity = _ParticleVelocityTexture.SampleLevel(sampler_ParticleVelocityTexture, id.xy * _InvParticleResolution, 0).xyz;
+
+    float3 cellIndex = floor(particlePosition);
+
+    float3 currentVelocity = sampleVelocity(_VelocityTexture, sampler_VelocityTexture, cellIndex);
+    float3 originalVelocity = sampleVelocity(_OriginalVelocityTexture, sampler_OriginalVelocityTexture, cellIndex);
+
+    float3 velocityChange = currentVelocity - originalVelocity;
+
+    float3 flipVelocity = particleVelocity + velocityChange;
+    float3 picVelocity = currentVelocity;
+
+    _ParticleVelocityTextureTemp[id.xy] = float4(lerp(picVelocity, flipVelocity, _Flipness), 0.0);
+    
+}
