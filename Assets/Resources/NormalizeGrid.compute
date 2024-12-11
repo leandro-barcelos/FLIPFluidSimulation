@@ -1,0 +1,33 @@
+#define NUM_THREADS 8
+
+#pragma kernel CSMain
+
+// Textures
+Texture3D<float4> _TempVelocityTexture;
+SamplerState sampler_TempVelocityTexture;
+Texture3D<float4> _WeightTexture;
+SamplerState sampler_WeightTexture;
+RWTexture3D<float4> _VelocityTexture;
+
+// Constants
+float3 _InvGridResolution;
+
+[numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
+void CSMain(uint3 id : SV_DispatchThreadID) {
+    float3 accumulatedVelocity = _TempVelocityTexture.SampleLevel(sampler_TempVelocityTexture, id.xyz * _InvGridResolution, 0).xyz;
+    float3 weight = _WeightTexture.SampleLevel(sampler_WeightTexture, id.xyz * _InvGridResolution, 0).xyz;
+
+    float xVelocity = 0.0;
+    if (weight.x > 0.0)
+        xVelocity = accumulatedVelocity.x / weight.x;
+
+    float yVelocity = 0.0;
+    if (weight.y > 0.0)
+        yVelocity = accumulatedVelocity.y / weight.y;
+
+    float zVelocity = 0.0;
+    if (weight.z > 0.0)
+        zVelocity = accumulatedVelocity.z / weight.z;
+    
+    _VelocityTexture[id] = float4(xVelocity, yVelocity, zVelocity, 0.0);
+}

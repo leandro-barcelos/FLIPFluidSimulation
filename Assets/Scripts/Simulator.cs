@@ -12,6 +12,7 @@ public class Simulator
     public int gridWidth, gridHeight, gridDepth;
 
     public int gridResolutionX, gridResolutionY, gridResolutionZ;
+    private Vector3 invGridResolution;
 
     public int particleDensity = 0;
 
@@ -33,7 +34,7 @@ public class Simulator
 
     public RenderTexture markerTexture, divergenceTexture, pressureTexture, tempSimulationTexture;
 
-    ComputeShader transferToGridShader;
+    ComputeShader transferToGridShader, normalizeGridShader;
 
     #region Initializations
 
@@ -56,6 +57,8 @@ public class Simulator
         gridResolutionY = gridResolution.y;
         gridResolutionZ = gridResolution.z;
 
+        invGridResolution = new(1f / gridResolutionX, 1f / gridResolutionY, 1f / gridResolutionZ);
+
         this.particleDensity = particleDensity;
 
         InitializeBuffers();
@@ -66,6 +69,7 @@ public class Simulator
     private void InitShaders()
     {
         transferToGridShader = Resources.Load<ComputeShader>("TransferToGrid");
+        normalizeGridShader = Resources.Load<ComputeShader>("NormalizeGrid");
     }
 
     private void InitializeSimulationTextures()
@@ -152,7 +156,7 @@ public class Simulator
         frameNumber++;
 
         TransferToGrid();
-        // TODO: normalize
+        NormalizeGrid();
         // TODO: mark cells with fluid
         // TODO: save our original velocity grid
         // TODO: add forces to velocity grid
@@ -272,5 +276,22 @@ public class Simulator
             int threadGroupsY = Mathf.CeilToInt(particlesHeight / NumThreads);
             transferToGridShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
         }
+    }
+
+    private void NormalizeGrid()
+    {
+        // Set shader parameters
+        normalizeGridShader.SetVector("_InvGridResolution", invGridResolution);
+
+        // Set textures
+        normalizeGridShader.SetTexture(0, "_TempVelocityTexture", tempVelocityTexture);
+        normalizeGridShader.SetTexture(0, "_VelocityTexture", velocityTexture);
+        normalizeGridShader.SetTexture(0, "_WeightTexture", weightTexture);
+
+        // Dispatch the compute shader
+        int threadGroupsX = Mathf.CeilToInt(gridResolutionX / NumThreads);
+        int threadGroupsY = Mathf.CeilToInt(gridResolutionY / NumThreads);
+        int threadGroupsZ = Mathf.CeilToInt(gridResolutionZ / NumThreads);
+        normalizeGridShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
     }
 }
