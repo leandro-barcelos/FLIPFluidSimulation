@@ -34,7 +34,7 @@ public class Simulator
 
     public RenderTexture markerTexture, divergenceTexture, pressureTexture, tempSimulationTexture;
 
-    ComputeShader transferToGridShader, normalizeGridShader;
+    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader;
 
     #region Initializations
 
@@ -70,6 +70,7 @@ public class Simulator
     {
         transferToGridShader = Resources.Load<ComputeShader>("TransferToGrid");
         normalizeGridShader = Resources.Load<ComputeShader>("NormalizeGrid");
+        addForcesShader = Resources.Load<ComputeShader>("AddForces");
     }
 
     private void InitializeSimulationTextures()
@@ -159,13 +160,13 @@ public class Simulator
         NormalizeGrid();
         // TODO: mark cells with fluid
         // TODO: save our original velocity grid
-        // TODO: add forces to velocity grid
+        AddForces(timeStep, mouseVelocity, mouseRayOrigin, mouseRayDirection);
         // TODO: enforce boundaries
         // TODO: compute divergence
         // TODO: compute pressure via jacobi
         // TODO: subtract pressure from velocity
         // TODO: transfer velocities back to particles
-        // TODO: advect particles
+        // TODO: advect particles and update mesh properties
     }
 
     #region Helper Functions
@@ -293,5 +294,28 @@ public class Simulator
         int threadGroupsY = Mathf.CeilToInt(gridResolutionY / NumThreads);
         int threadGroupsZ = Mathf.CeilToInt(gridResolutionZ / NumThreads);
         normalizeGridShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
+    }
+
+    private void AddForces(float timeStep, Vector3 mouseVelocity, Vector3 mouseRayOrigin, Vector3 mouseRayDirection)
+    {
+        // Set shader parameters
+        addForcesShader.SetVector("_InvGridResolution", invGridResolution);
+        addForcesShader.SetVector("_GridSize", new(gridWidth, gridHeight, gridDepth));
+        addForcesShader.SetVector("_MouseVelocity", mouseVelocity);
+        addForcesShader.SetVector("_MouseRayOrigin", mouseRayOrigin);
+        addForcesShader.SetVector("_MouseRayDirection", mouseRayDirection);
+        addForcesShader.SetFloat("_TimeStep", timeStep);
+
+        // Set textures
+        addForcesShader.SetTexture(0, "_TempVelocityTexture", tempVelocityTexture);
+        addForcesShader.SetTexture(0, "_VelocityTexture", velocityTexture);
+
+        // Dispatch the compute shader
+        int threadGroupsX = Mathf.CeilToInt(gridResolutionX / NumThreads);
+        int threadGroupsY = Mathf.CeilToInt(gridResolutionY / NumThreads);
+        int threadGroupsZ = Mathf.CeilToInt(gridResolutionZ / NumThreads);
+        addForcesShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
+
+        Swap(velocityTexture, tempVelocityTexture);
     }
 }
