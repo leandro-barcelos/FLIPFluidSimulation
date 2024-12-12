@@ -243,6 +243,7 @@ public class Simulator
         transferToGridShader.SetVector("_GridResolution", new(gridResolutionX, gridResolutionY, gridResolutionZ));
         transferToGridShader.SetVector("_GridSize", new Vector3(gridWidth, gridHeight, gridDepth));
         transferToGridShader.SetVector("_InvParticlesResolution", invParticleResolution);
+        transferToGridShader.SetVector("_ParticleResolution", new(particlesWidth, particlesHeight));
 
         transferToGridShader.SetInt("_Accumulate", 0);
 
@@ -284,6 +285,7 @@ public class Simulator
     {
         // Set shader parameters
         normalizeGridShader.SetVector("_InvGridResolution", invGridResolution);
+        normalizeGridShader.SetVector("_GridResolution", new(gridResolutionX, gridResolutionY, gridResolutionZ));
 
         // Set textures
         normalizeGridShader.SetTexture(0, "_TempVelocityTexture", tempVelocityTexture);
@@ -301,6 +303,7 @@ public class Simulator
     {
         // Set shader parameters
         addForcesShader.SetVector("_InvGridResolution", invGridResolution);
+        addForcesShader.SetVector("_GridResolution", new(gridResolutionX, gridResolutionY, gridResolutionZ));
         addForcesShader.SetVector("_GridSize", new(gridWidth, gridHeight, gridDepth));
         addForcesShader.SetVector("_MouseVelocity", mouseVelocity);
         addForcesShader.SetVector("_MouseRayOrigin", mouseRayOrigin);
@@ -324,6 +327,7 @@ public class Simulator
     {
         // Set shader parameters
         transferToParticlesShader.SetVector("_InvParticleResolution", invParticleResolution);
+        transferToParticlesShader.SetVector("_ParticleResolution", new(particlesWidth, particlesHeight));
         transferToParticlesShader.SetVector("_InvGridResolution", invGridResolution);
         transferToParticlesShader.SetVector("_GridResolution", new(gridResolutionX, gridResolutionY, gridResolutionZ));
         transferToParticlesShader.SetVector("_GridSize", new(gridWidth, gridHeight, gridDepth));

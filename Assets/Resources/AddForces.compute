@@ -13,6 +13,7 @@ float3 _GridSize;
 float3 _MouseVelocity;
 float3 _MouseRayOrigin;
 float3 _MouseRayDirection;
+float3 _GridResolution;
 float _TimeStep;
 
 // Helper Functions
@@ -28,6 +29,8 @@ float kernel(float3 position, float radius)
 
 [numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
 void CSMain(uint3 id : SV_DispatchThreadID) {
+    if ((int)id.x >= _GridResolution.x || (int)id.y >= _GridResolution.y || (int)id.z >= _GridResolution.z) return;
+
     float3 velocity = _VelocityTexture.SampleLevel(sampler_VelocityTexture, id.xyz * _InvGridResolution, 0).xyz;
 
     float3 newVelocity = velocity + float3(0.0, -40.0 * _TimeStep, 0.0);

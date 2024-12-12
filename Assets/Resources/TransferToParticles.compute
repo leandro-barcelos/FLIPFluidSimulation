@@ -18,6 +18,7 @@ float3 _GridSize;
 float3 _GridResolution;
 float3 _InvGridResolution;
 float2 _InvParticleResolution;
+float2 _ParticleResolution;
 float _Flipness;
 
 // Helper functions
@@ -43,6 +44,8 @@ float3 sampleVelocity(Texture3D _texture, SamplerState _sampler, float3 position
 
 [numthreads(NUM_THREADS, NUM_THREADS, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID) {
+    if ((int)id.x >= _ParticleResolution.x || (int)id.y >= _ParticleResolution.y) return;
+
     float3 particlePosition = _ParticlePositionTexture.SampleLevel(sampler_ParticlePositionTexture, id.xy * _InvParticleResolution, 0).xyz;
     particlePosition = (particlePosition / _GridSize) * _GridResolution;
 
