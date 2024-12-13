@@ -136,7 +136,7 @@ public class Parti : MonoBehaviour
 
                 MeshProperties props = new()
                 {
-                    Mat = Matrix4x4.TRS(position - transform.position, rotation, particleScale),
+                    Mat = Matrix4x4.TRS(position, rotation, particleScale),
                     Color = Color.blue
                 };
 
@@ -174,7 +174,7 @@ public class Parti : MonoBehaviour
     {
         UpdateMouse(out Vector3 worldSpaceMouseRay, out Vector3 worldMouseVelocity);
 
-        simulator.Simulate(timeStep, worldMouseVelocity, camera.transform.position, worldSpaceMouseRay);
+        simulator.Simulate(timeStep, worldMouseVelocity, camera.transform.position, worldSpaceMouseRay, _meshPropertiesBuffer);
 
         Graphics.DrawMeshInstancedIndirect(_particleMesh, 0, particleMaterial, _bounds, _argsBuffer);
     }

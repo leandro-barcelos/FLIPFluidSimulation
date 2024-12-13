@@ -34,7 +34,7 @@ public class Simulator
 
     public RenderTexture markerTexture, divergenceTexture, pressureTexture, tempSimulationTexture;
 
-    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader, transferToParticlesShader;
+    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader, transferToParticlesShader, updateMeshPropertiesShader;
 
     #region Initializations
 
@@ -72,6 +72,7 @@ public class Simulator
         normalizeGridShader = Resources.Load<ComputeShader>("NormalizeGrid");
         addForcesShader = Resources.Load<ComputeShader>("AddForces");
         transferToParticlesShader = Resources.Load<ComputeShader>("TransferToParticles");
+        updateMeshPropertiesShader = Resources.Load<ComputeShader>("UpdateMeshProperties");
     }
 
     private void InitializeSimulationTextures()
@@ -153,7 +154,7 @@ public class Simulator
 
     #endregion
 
-    public void Simulate(float timeStep, Vector3 mouseVelocity, Vector3 mouseRayOrigin, Vector3 mouseRayDirection)
+    public void Simulate(float timeStep, Vector3 mouseVelocity, Vector3 mouseRayOrigin, Vector3 mouseRayDirection, ComputeBuffer _meshPropertiesBuffer)
     {
         frameNumber++;
 
@@ -167,7 +168,8 @@ public class Simulator
         // TODO: compute pressure via jacobi
         // TODO: subtract pressure from velocity
         TransferToParticles();
-        // TODO: advect particles and update mesh properties
+        // TODO: advect particles
+        UpdateMeshProperties(_meshPropertiesBuffer);
     }
 
     #region Helper Functions
@@ -346,5 +348,23 @@ public class Simulator
         transferToParticlesShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
 
         Swap(particleVelocityTextureTemp, particleVelocityTexture);
+    }
+
+    private void UpdateMeshProperties(ComputeBuffer _meshPropertiesBuffer)
+    {
+        // Set shader parameters
+        updateMeshPropertiesShader.SetVector("_ParticleResolution", new(particlesWidth, particlesHeight));
+        updateMeshPropertiesShader.SetVector("_InvParticleResolution", invParticleResolution);
+        updateMeshPropertiesShader.SetVector("_GridSize", new(gridWidth, gridHeight, gridDepth));
+        updateMeshPropertiesShader.SetFloat("_ParticleRadius", 7f / gridResolutionX);
+
+        // Set textures
+        updateMeshPropertiesShader.SetTexture(0, "_ParticlePositionTexture", particlePositionTexture);
+        updateMeshPropertiesShader.SetBuffer(0, ShaderIDs.Properties, _meshPropertiesBuffer);
+
+        // Dispatch the compute shader
+        int threadGroupsX = Mathf.CeilToInt((float)particlesWidth / NumThreads);
+        int threadGroupsY = Mathf.CeilToInt((float)particlesHeight / NumThreads);
+        updateMeshPropertiesShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
     }
 }
