@@ -181,7 +181,7 @@ public class Simulator
 
     #region Helper Functions
 
-    private void Swap(RenderTexture a, RenderTexture b)
+    private void Swap(ref RenderTexture a, ref RenderTexture b)
     {
         (b, a) = (a, b);
     }
@@ -329,7 +329,7 @@ public class Simulator
         int threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
         addForcesShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
 
-        Swap(velocityTexture, tempVelocityTexture);
+        Swap(ref velocityTexture, ref tempVelocityTexture);
     }
 
     private void TransferToParticles()
@@ -354,7 +354,7 @@ public class Simulator
         int threadGroupsY = Mathf.CeilToInt((float)particlesHeight / NumThreads);
         transferToParticlesShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
 
-        Swap(particleVelocityTextureTemp, particleVelocityTexture);
+        Swap(ref particleVelocityTextureTemp, ref particleVelocityTexture);
     }
 
     private void UpdateMeshProperties(ComputeBuffer _meshPropertiesBuffer)
