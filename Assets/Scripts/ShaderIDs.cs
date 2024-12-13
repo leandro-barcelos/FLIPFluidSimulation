@@ -22,5 +22,7 @@ public class ShaderIDs
     public static readonly int OriginalVelocityTexture = Shader.PropertyToID("_OriginalVelocityTexture");
     public static readonly int ParticleVelocityTextureTemp = Shader.PropertyToID("_ParticleVelocityTextureTemp");
     public static readonly int ParticleRadius = Shader.PropertyToID("_ParticleRadius");
-
+    public static readonly int ParticlePositionTextureTemp = Shader.PropertyToID("_ParticlePositionTextureTemp");
+    public static readonly int ParticleRandomTexture = Shader.PropertyToID("_ParticleRandomTexture");
+    public static readonly int FrameNumber = Shader.PropertyToID("_FrameNumber");
 }
