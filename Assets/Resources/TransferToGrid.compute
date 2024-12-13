@@ -12,7 +12,7 @@ RWTexture3D<float4> _GridOutput;
 // Constants
 float3 _GridSize;
 float3 _GridResolution;
-float2 _InvParticlesResolution;
+float2 _InvParticleResolution;
 float2 _ParticleResolution;
 int _ZOffset;
 int _Accumulate; // 0 or 1
@@ -38,10 +38,10 @@ float3 get3DCoord(uint3 id, float3 resolution) {
 void CSMain(uint3 id : SV_DispatchThreadID) {
     if ((int)id.x >= _ParticleResolution.x || (int)id.y >= _ParticleResolution.y) return;
 
-    float3 position = _ParticlePositionTexture.SampleLevel(sampler_ParticlePositionTexture, id.xy * _InvParticlesResolution, 0).xyz;
+    float3 position = _ParticlePositionTexture.SampleLevel(sampler_ParticlePositionTexture, id.xy * _InvParticleResolution, 0).xyz;
     position = (position / _GridSize) * _GridResolution;
 
-    float3 velocity = _ParticleVelocityTexture.SampleLevel(sampler_ParticleVelocityTexture, id.xy * _InvParticlesResolution, 0).xyz;
+    float3 velocity = _ParticleVelocityTexture.SampleLevel(sampler_ParticleVelocityTexture, id.xy * _InvParticleResolution, 0).xyz;
 
     // Compute grid cell and position
     float3 cellIndex = floor(position);
