@@ -242,10 +242,10 @@ public class Simulator
     private void TransferToGrid()
     {
         // Set shader parameters
-        transferToGridShader.SetVector("_GridResolution", new(gridResolutionX, gridResolutionY, gridResolutionZ));
-        transferToGridShader.SetVector("_GridSize", new Vector3(gridWidth, gridHeight, gridDepth));
-        transferToGridShader.SetVector("_InvParticlesResolution", invParticleResolution);
-        transferToGridShader.SetVector("_ParticleResolution", new(particlesWidth, particlesHeight));
+        transferToGridShader.SetVector(ShaderIDs.GridResolution, new(gridResolutionX, gridResolutionY, gridResolutionZ));
+        transferToGridShader.SetVector(ShaderIDs.GridSize, new Vector3(gridWidth, gridHeight, gridDepth));
+        transferToGridShader.SetVector(ShaderIDs.InvParticleResolution, invParticleResolution);
+        transferToGridShader.SetVector(ShaderIDs.ParticleResolution, new(particlesWidth, particlesHeight));
 
         transferToGridShader.SetInt("_Accumulate", 0);
 
@@ -255,9 +255,9 @@ public class Simulator
             transferToGridShader.SetInt("_ZOffset", z);
 
             // Set textures
-            transferToGridShader.SetTexture(0, "_ParticlePositionTexture", particlePositionTexture);
-            transferToGridShader.SetTexture(0, "_ParticleVelocityTexture", particleVelocityTexture);
-            transferToGridShader.SetTexture(0, "_GridOutput", weightTexture);
+            transferToGridShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
+            transferToGridShader.SetTexture(0, ShaderIDs.ParticleVelocityTexture, particleVelocityTexture);
+            transferToGridShader.SetTexture(0, ShaderIDs.GridOutput, weightTexture);
 
             // Dispatch the compute shader
             int threadGroupsX = Mathf.CeilToInt((float)particlesWidth / NumThreads);
@@ -272,9 +272,9 @@ public class Simulator
             transferToGridShader.SetInt("_ZOffset", z);
 
             // Set textures
-            transferToGridShader.SetTexture(0, "_ParticlePositionTexture", particlePositionTexture);
-            transferToGridShader.SetTexture(0, "_ParticleVelocityTexture", particleVelocityTexture);
-            transferToGridShader.SetTexture(0, "_GridOutput", tempVelocityTexture);
+            transferToGridShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
+            transferToGridShader.SetTexture(0, ShaderIDs.ParticleVelocityTexture, particleVelocityTexture);
+            transferToGridShader.SetTexture(0, ShaderIDs.GridOutput, tempVelocityTexture);
 
             // Dispatch the compute shader
             int threadGroupsX = Mathf.CeilToInt((float)particlesWidth / NumThreads);
@@ -286,13 +286,13 @@ public class Simulator
     private void NormalizeGrid()
     {
         // Set shader parameters
-        normalizeGridShader.SetVector("_InvGridResolution", invGridResolution);
-        normalizeGridShader.SetVector("_GridResolution", new(gridResolutionX, gridResolutionY, gridResolutionZ));
+        normalizeGridShader.SetVector(ShaderIDs.InvGridResolution, invGridResolution);
+        normalizeGridShader.SetVector(ShaderIDs.GridResolution, new(gridResolutionX, gridResolutionY, gridResolutionZ));
 
         // Set textures
-        normalizeGridShader.SetTexture(0, "_TempVelocityTexture", tempVelocityTexture);
-        normalizeGridShader.SetTexture(0, "_VelocityTexture", velocityTexture);
-        normalizeGridShader.SetTexture(0, "_WeightTexture", weightTexture);
+        normalizeGridShader.SetTexture(0, ShaderIDs.TempVelocityTexture, tempVelocityTexture);
+        normalizeGridShader.SetTexture(0, ShaderIDs.VelocityTexture, velocityTexture);
+        normalizeGridShader.SetTexture(0, ShaderIDs.WeightTexture, weightTexture);
 
         // Dispatch the compute shader
         int threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);
@@ -304,17 +304,17 @@ public class Simulator
     private void AddForces(float timeStep, Vector3 mouseVelocity, Vector3 mouseRayOrigin, Vector3 mouseRayDirection)
     {
         // Set shader parameters
-        addForcesShader.SetVector("_InvGridResolution", invGridResolution);
-        addForcesShader.SetVector("_GridResolution", new(gridResolutionX, gridResolutionY, gridResolutionZ));
-        addForcesShader.SetVector("_GridSize", new(gridWidth, gridHeight, gridDepth));
-        addForcesShader.SetVector("_MouseVelocity", mouseVelocity);
-        addForcesShader.SetVector("_MouseRayOrigin", mouseRayOrigin);
-        addForcesShader.SetVector("_MouseRayDirection", mouseRayDirection);
-        addForcesShader.SetFloat("_TimeStep", timeStep);
+        addForcesShader.SetVector(ShaderIDs.InvGridResolution, invGridResolution);
+        addForcesShader.SetVector(ShaderIDs.GridResolution, new(gridResolutionX, gridResolutionY, gridResolutionZ));
+        addForcesShader.SetVector(ShaderIDs.GridSize, new(gridWidth, gridHeight, gridDepth));
+        addForcesShader.SetVector(ShaderIDs.MouseVelocity, mouseVelocity);
+        addForcesShader.SetVector(ShaderIDs.MouseRayOrigin, mouseRayOrigin);
+        addForcesShader.SetVector(ShaderIDs.MouseRayDirection, mouseRayDirection);
+        addForcesShader.SetFloat(ShaderIDs.TimeStep, timeStep);
 
         // Set textures
-        addForcesShader.SetTexture(0, "_TempVelocityTexture", tempVelocityTexture);
-        addForcesShader.SetTexture(0, "_VelocityTexture", velocityTexture);
+        addForcesShader.SetTexture(0, ShaderIDs.TempVelocityTexture, tempVelocityTexture);
+        addForcesShader.SetTexture(0, ShaderIDs.VelocityTexture, velocityTexture);
 
         // Dispatch the compute shader
         int threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);
@@ -328,19 +328,19 @@ public class Simulator
     private void TransferToParticles()
     {
         // Set shader parameters
-        transferToParticlesShader.SetVector("_InvParticleResolution", invParticleResolution);
-        transferToParticlesShader.SetVector("_ParticleResolution", new(particlesWidth, particlesHeight));
-        transferToParticlesShader.SetVector("_InvGridResolution", invGridResolution);
-        transferToParticlesShader.SetVector("_GridResolution", new(gridResolutionX, gridResolutionY, gridResolutionZ));
-        transferToParticlesShader.SetVector("_GridSize", new(gridWidth, gridHeight, gridDepth));
-        transferToParticlesShader.SetFloat("_Flipness", flipness);
+        transferToParticlesShader.SetVector(ShaderIDs.InvParticleResolution, invParticleResolution);
+        transferToParticlesShader.SetVector(ShaderIDs.ParticleResolution, new(particlesWidth, particlesHeight));
+        transferToParticlesShader.SetVector(ShaderIDs.InvGridResolution, invGridResolution);
+        transferToParticlesShader.SetVector(ShaderIDs.GridResolution, new(gridResolutionX, gridResolutionY, gridResolutionZ));
+        transferToParticlesShader.SetVector(ShaderIDs.GridSize, new(gridWidth, gridHeight, gridDepth));
+        transferToParticlesShader.SetFloat(ShaderIDs.Flipness, flipness);
 
         // Set textures
-        transferToParticlesShader.SetTexture(0, "_VelocityTexture", velocityTexture);
-        transferToParticlesShader.SetTexture(0, "_OriginalVelocityTexture", originalVelocityTexture);
-        transferToParticlesShader.SetTexture(0, "_ParticlePositionTexture", particlePositionTexture);
-        transferToParticlesShader.SetTexture(0, "_ParticleVelocityTexture", particleVelocityTexture);
-        transferToParticlesShader.SetTexture(0, "_ParticleVelocityTextureTemp", particleVelocityTextureTemp);
+        transferToParticlesShader.SetTexture(0, ShaderIDs.VelocityTexture, velocityTexture);
+        transferToParticlesShader.SetTexture(0, ShaderIDs.OriginalVelocityTexture, originalVelocityTexture);
+        transferToParticlesShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
+        transferToParticlesShader.SetTexture(0, ShaderIDs.ParticleVelocityTexture, particleVelocityTexture);
+        transferToParticlesShader.SetTexture(0, ShaderIDs.ParticleVelocityTextureTemp, particleVelocityTextureTemp);
 
         // Dispatch the compute shader
         int threadGroupsX = Mathf.CeilToInt((float)particlesWidth / NumThreads);
@@ -353,13 +353,13 @@ public class Simulator
     private void UpdateMeshProperties(ComputeBuffer _meshPropertiesBuffer)
     {
         // Set shader parameters
-        updateMeshPropertiesShader.SetVector("_ParticleResolution", new(particlesWidth, particlesHeight));
-        updateMeshPropertiesShader.SetVector("_InvParticleResolution", invParticleResolution);
-        updateMeshPropertiesShader.SetVector("_GridSize", new(gridWidth, gridHeight, gridDepth));
-        updateMeshPropertiesShader.SetFloat("_ParticleRadius", 7f / gridResolutionX);
+        updateMeshPropertiesShader.SetVector(ShaderIDs.ParticleResolution, new(particlesWidth, particlesHeight));
+        updateMeshPropertiesShader.SetVector(ShaderIDs.InvParticleResolution, invParticleResolution);
+        updateMeshPropertiesShader.SetVector(ShaderIDs.GridSize, new(gridWidth, gridHeight, gridDepth));
+        updateMeshPropertiesShader.SetFloat(ShaderIDs.ParticleRadius, 7f / gridResolutionX);
 
         // Set textures
-        updateMeshPropertiesShader.SetTexture(0, "_ParticlePositionTexture", particlePositionTexture);
+        updateMeshPropertiesShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
         updateMeshPropertiesShader.SetBuffer(0, ShaderIDs.Properties, _meshPropertiesBuffer);
 
         // Dispatch the compute shader
