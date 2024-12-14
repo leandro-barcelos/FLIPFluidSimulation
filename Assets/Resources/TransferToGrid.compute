@@ -23,14 +23,6 @@ float k(float3 v) {
     return h(v.x) * h(v.y) * h(v.z);
 }
 
-float3 get3DCoord(uint3 id, float3 resolution) {
-    return float3(
-        id.x % resolution.x,
-        id.y,
-        floor(id.x / resolution.x) + 0.5
-    );
-}
-
 [numthreads(NUM_THREADS, NUM_THREADS, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID) {
     if ((int)id.x >= _ParticleResolution.x || (int)id.y >= _ParticleResolution.y) return;
