@@ -251,8 +251,7 @@ public class Simulator
     {
         // Set shader parameters
         transferToGridShader.SetVector(ShaderIDs.GridResolution, gridResolution);
-        transferToGridShader.SetVector(ShaderIDs.GridSize, new Vector3(gridWidth, gridHeight, gridDepth));
-        transferToGridShader.SetVector(ShaderIDs.InvParticleResolution, invParticleResolution);
+        transferToGridShader.SetVector(ShaderIDs.GridSize, gridSize);
         transferToGridShader.SetVector(ShaderIDs.ParticleResolution, particleResolution);
 
         transferToGridShader.SetInt("_Accumulate", 0);
@@ -294,7 +293,6 @@ public class Simulator
     private void NormalizeGrid()
     {
         // Set shader parameters
-        normalizeGridShader.SetVector(ShaderIDs.InvGridResolution, invGridResolution);
         normalizeGridShader.SetVector(ShaderIDs.GridResolution, gridResolution);
 
         // Set textures
@@ -336,9 +334,7 @@ public class Simulator
     private void TransferToParticles()
     {
         // Set shader parameters
-        transferToParticlesShader.SetVector(ShaderIDs.InvParticleResolution, invParticleResolution);
         transferToParticlesShader.SetVector(ShaderIDs.ParticleResolution, particleResolution);
-        transferToParticlesShader.SetVector(ShaderIDs.InvGridResolution, invGridResolution);
         transferToParticlesShader.SetVector(ShaderIDs.GridResolution, gridResolution);
         transferToParticlesShader.SetVector(ShaderIDs.GridSize, gridSize);
         transferToParticlesShader.SetFloat(ShaderIDs.Flipness, flipness);
@@ -362,7 +358,6 @@ public class Simulator
     {
         // Set shader parameters
         updateMeshPropertiesShader.SetVector(ShaderIDs.ParticleResolution, particleResolution);
-        updateMeshPropertiesShader.SetVector(ShaderIDs.InvParticleResolution, invParticleResolution);
         updateMeshPropertiesShader.SetVector(ShaderIDs.GridSize, gridSize);
         updateMeshPropertiesShader.SetFloat(ShaderIDs.ParticleRadius, 7f / gridResolutionX);
 
@@ -380,9 +375,7 @@ public class Simulator
     {
         // Set shader parameters
         advectShader.SetVector(ShaderIDs.GridResolution, gridResolution);
-        advectShader.SetVector(ShaderIDs.InvGridResolution, invGridResolution);
         advectShader.SetVector(ShaderIDs.ParticleResolution, particleResolution);
-        advectShader.SetVector(ShaderIDs.InvParticleResolution, invParticleResolution);
         advectShader.SetVector(ShaderIDs.GridSize, gridSize);
         advectShader.SetInt(ShaderIDs.FrameNumber, frameNumber);
         advectShader.SetFloat(ShaderIDs.TimeStep, timeStep);

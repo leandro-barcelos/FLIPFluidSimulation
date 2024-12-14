@@ -4,36 +4,31 @@
 
 // Buffers
 Texture2D<float4> _ParticlePositionTexture;
-SamplerState sampler_ParticlePositionTexture;
 Texture2D<float4> _ParticleRandomTexture;
-SamplerState sampler_ParticleRandomTexture;
 Texture3D<float4> _VelocityTexture;
-SamplerState sampler_VelocityTexture;
 RWTexture2D<float4> _ParticlePositionTextureTemp;
 
 // Parameters
 float3 _GridResolution;
 float3 _GridSize;
-float3 _InvGridResolution;
 float2 _ParticleResolution;
-float2 _InvParticleResolution;
 float _TimeStep;
 int _FrameNumber;
 
 // Helper functions
 float sampleXVelocity(float3 position) {
     float3 cellIndex = position + float3(0.0, -0.5, -0.5);
-    return _VelocityTexture.SampleLevel(sampler_VelocityTexture, cellIndex * _InvGridResolution, 0).x;
+    return _VelocityTexture[cellIndex].x;
 }
 
 float sampleYVelocity(float3 position) {
     float3 cellIndex = position + float3(-0.5, 0.0, -0.5);
-    return _VelocityTexture.SampleLevel(sampler_VelocityTexture, cellIndex * _InvGridResolution, 0).y;
+    return _VelocityTexture[cellIndex].y;
 }
 
 float sampleZVelocity(float3 position) {
     float3 cellIndex = position + float3(-0.5, -0.5, 0.0);
-    return _VelocityTexture.SampleLevel(sampler_VelocityTexture, cellIndex * _InvGridResolution, 0).z;
+    return _VelocityTexture[cellIndex].z;
 }
 
 float3 sampleVelocity(float3 position)
@@ -49,16 +44,17 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 {
     if ((int)id.x >= _ParticleResolution.x || (int)id.y >= _ParticleResolution.y) return;
 
-    float3 position = _ParticlePositionTexture.SampleLevel(sampler_ParticlePositionTexture, id.xy * _InvParticleResolution, 0).xyz;
-    position = (position / _GridSize) * _GridResolution;
-    float3 randomDirection = _ParticleRandomTexture.SampleLevel(sampler_ParticleRandomTexture, frac(id.xy * _InvParticleResolution + _FrameNumber / _ParticleResolution), 0).xyz;
+    float3 position = _ParticlePositionTexture[id.xy].xyz;
+    float3 gridPosition = (position / _GridSize) * _GridResolution;
+    float3 randomDirection = _ParticleRandomTexture[(id.xy + _FrameNumber) % _ParticleResolution].xyz;
 
-    float3 cellIndex = floor(position);
+    float3 cellIndex = floor(gridPosition);
 
     float3 velocity = sampleVelocity(cellIndex);
 
     float3 halfwayPosition = position + velocity * _TimeStep * 0.5;
-    float3 halfwayVelocity = sampleVelocity(floor(halfwayPosition));
+    gridPosition = (halfwayPosition / _GridSize) * _GridResolution;
+    float3 halfwayVelocity = sampleVelocity(floor(gridPosition));
 
     float3 step = halfwayVelocity * _TimeStep;
 

@@ -9,13 +9,11 @@ struct MeshProperties {
 
 // Buffers
 Texture2D<float4> _ParticlePositionTexture;
-SamplerState sampler_ParticlePositionTexture;
 RWStructuredBuffer<MeshProperties> _Properties;
 
 // Parameters
 float _ParticleRadius;
 float2 _ParticleResolution;
-float2 _InvParticleResolution;
 float3 _GridSize;
 
 // Kernel
@@ -26,7 +24,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 {
     if ((int)id.x >= _ParticleResolution.x || (int)id.y >= _ParticleResolution.y) return;
 
-    float3 pos = _ParticlePositionTexture.SampleLevel(sampler_ParticlePositionTexture, id.xy * _InvParticleResolution, 0).xyz;
+    float3 pos = _ParticlePositionTexture[id.xy].xyz;
 
     int index = id.x + id.y * _ParticleResolution.x;
 
