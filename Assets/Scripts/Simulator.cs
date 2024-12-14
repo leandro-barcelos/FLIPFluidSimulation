@@ -37,7 +37,7 @@ public class Simulator
 
     public RenderTexture markerTexture, divergenceTexture, pressureTexture, tempSimulationTexture;
 
-    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader, transferToParticlesShader, updateMeshPropertiesShader, advectShader;
+    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader, transferToParticlesShader, updateMeshPropertiesShader, advectShader, copyShader;
 
     #region Initializations
 
@@ -81,6 +81,7 @@ public class Simulator
         transferToParticlesShader = Resources.Load<ComputeShader>("TransferToParticles");
         updateMeshPropertiesShader = Resources.Load<ComputeShader>("UpdateMeshProperties");
         advectShader = Resources.Load<ComputeShader>("Advect");
+        copyShader = Resources.Load<ComputeShader>("Copy");
     }
 
     private void InitializeSimulationTextures()
@@ -169,7 +170,7 @@ public class Simulator
         TransferToGrid();
         NormalizeGrid();
         // TODO: mark cells with fluid
-        // TODO: save our original velocity grid
+        Copy();
         AddForces(timeStep, mouseVelocity, mouseRayOrigin, mouseRayDirection);
         // TODO: enforce boundaries
         // TODO: compute divergence
@@ -374,5 +375,18 @@ public class Simulator
         advectShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
 
         Swap(ref particlePositionTextureTemp, ref particlePositionTexture);
+    }
+
+    private void Copy()
+    {
+        // Set textures
+        copyShader.SetTexture(0, ShaderIDs.VelocityTexture, velocityTexture);
+        copyShader.SetTexture(0, ShaderIDs.OriginalVelocityTexture, originalVelocityTexture);
+
+        // Dispatch the compute shader
+        int threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);
+        int threadGroupsY = Mathf.CeilToInt((float)gridResolutionY / NumThreads);
+        int threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
+        copyShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
     }
 }
