@@ -117,12 +117,12 @@ public class Simulator
                 0.0f
             );
 
-            var theta = Random.value * 2f * Mathf.PI;
-            var u = Random.value * 2f - 1f;
-            particleRandoms[i] = new(
-                Mathf.Sqrt(1f - u * u) * Mathf.Cos(theta),
-                Mathf.Sqrt(1f - u * u) * Mathf.Sin(theta),
-                u,
+            // Generate a random normalized direction
+            var randomDirection = Random.insideUnitSphere.normalized;
+            particleRandoms[i] = new Color(
+                randomDirection.x,
+                randomDirection.y,
+                randomDirection.z,
                 0.0f
             );
         }
