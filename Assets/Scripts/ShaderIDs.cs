@@ -9,7 +9,6 @@ public class ShaderIDs
     public static readonly int ParticleResolution = Shader.PropertyToID("_ParticleResolution");
     public static readonly int ParticlePositionTexture = Shader.PropertyToID("_ParticlePositionTexture");
     public static readonly int ParticleVelocityTexture = Shader.PropertyToID("_ParticleVelocityTexture");
-    public static readonly int GridOutput = Shader.PropertyToID("_GridOutput");
     public static readonly int InvGridResolution = Shader.PropertyToID("_InvGridResolution");
     public static readonly int TempVelocityTexture = Shader.PropertyToID("_TempVelocityTexture");
     public static readonly int VelocityTexture = Shader.PropertyToID("_VelocityTexture");
@@ -25,4 +24,5 @@ public class ShaderIDs
     public static readonly int ParticlePositionTextureTemp = Shader.PropertyToID("_ParticlePositionTextureTemp");
     public static readonly int ParticleRandomTexture = Shader.PropertyToID("_ParticleRandomTexture");
     public static readonly int FrameNumber = Shader.PropertyToID("_FrameNumber");
+    public static readonly int ZOffset = Shader.PropertyToID("_ZOffset");
 }

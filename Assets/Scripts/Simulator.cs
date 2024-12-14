@@ -254,34 +254,16 @@ public class Simulator
         transferToGridShader.SetVector(ShaderIDs.GridSize, gridSize);
         transferToGridShader.SetVector(ShaderIDs.ParticleResolution, particleResolution);
 
-        transferToGridShader.SetInt("_Accumulate", 0);
-
         var splatDepth = 5;
         for (int z = -(splatDepth - 1) / 2; z <= (splatDepth - 1) / 2; ++z)
         {
-            transferToGridShader.SetInt("_ZOffset", z);
+            transferToGridShader.SetInt(ShaderIDs.ZOffset, z);
 
             // Set textures
             transferToGridShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
             transferToGridShader.SetTexture(0, ShaderIDs.ParticleVelocityTexture, particleVelocityTexture);
-            transferToGridShader.SetTexture(0, ShaderIDs.GridOutput, weightTexture);
-
-            // Dispatch the compute shader
-            int threadGroupsX = Mathf.CeilToInt((float)particlesWidth / NumThreads);
-            int threadGroupsY = Mathf.CeilToInt((float)particlesHeight / NumThreads);
-            transferToGridShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
-        }
-
-        transferToGridShader.SetInt("_Accumulate", 1);
-
-        for (int z = -(splatDepth - 1) / 2; z <= (splatDepth - 1) / 2; ++z)
-        {
-            transferToGridShader.SetInt("_ZOffset", z);
-
-            // Set textures
-            transferToGridShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
-            transferToGridShader.SetTexture(0, ShaderIDs.ParticleVelocityTexture, particleVelocityTexture);
-            transferToGridShader.SetTexture(0, ShaderIDs.GridOutput, tempVelocityTexture);
+            transferToGridShader.SetTexture(0, ShaderIDs.WeightTexture, weightTexture);
+            transferToGridShader.SetTexture(0, ShaderIDs.TempVelocityTexture, tempVelocityTexture);
 
             // Dispatch the compute shader
             int threadGroupsX = Mathf.CeilToInt((float)particlesWidth / NumThreads);

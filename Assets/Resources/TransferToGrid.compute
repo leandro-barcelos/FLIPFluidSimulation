@@ -5,14 +5,14 @@
 // Textures
 Texture2D<float4> _ParticlePositionTexture;
 Texture2D<float4> _ParticleVelocityTexture;
-RWTexture3D<float4> _GridOutput;
+RWTexture3D<float4> _WeightTexture;
+RWTexture3D<float4> _TempVelocityTexture;
 
 // Constants
 float3 _GridSize;
 float3 _GridResolution;
 float2 _ParticleResolution;
 int _ZOffset;
-int _Accumulate; // 0 or 1
 
 // Helper functions
 float h(float r) {
@@ -48,11 +48,6 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
     float3 scalarPosition = float3(cellIndex.x + 0.5, cellIndex.y + 0.5, cellIndex.z + 0.5);
     float scalarWeight = k(position - scalarPosition);
 
-    float4 output = 0.0;
-    if (_Accumulate == 0)
-        output = float4(xWeight, yWeight, zWeight, scalarWeight);
-    else if (_Accumulate == 1)
-        output = float4(xWeight * velocity.x, yWeight * velocity.y, zWeight * velocity.z, 0.0);
-    
-    _GridOutput[cellIndex] += output;
+    _WeightTexture[cellIndex] += float4(xWeight, yWeight, zWeight, scalarWeight);
+    _TempVelocityTexture[cellIndex] += float4(xWeight * velocity.x, yWeight * velocity.y, zWeight * velocity.z, 0.0);
 }
