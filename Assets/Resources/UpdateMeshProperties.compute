@@ -8,19 +8,21 @@ struct MeshProperties {
 };
 
 // Buffers
+Texture3D<int> _MarkerTexture;
 Texture2D<float4> _ParticlePositionTexture;
 RWStructuredBuffer<MeshProperties> _Properties;
 
 // Parameters
 float _ParticleRadius;
 float2 _ParticleResolution;
+float3 _GridResolution;
 float3 _GridSize;
 
 // Kernel
-#pragma kernel CSMain
+#pragma kernel Particles
 
 [numthreads(NUM_THREADS, NUM_THREADS, 1)]
-void CSMain(uint3 id : SV_DispatchThreadID)
+void Particles(uint3 id : SV_DispatchThreadID)
 {
     if ((int)id.x >= _ParticleResolution.x || (int)id.y >= _ParticleResolution.y) return;
 
@@ -37,4 +39,32 @@ void CSMain(uint3 id : SV_DispatchThreadID)
         float4(0, 0, _ParticleRadius * 2.0, pos.z - _GridSize.z * 0.5),
         float4(0, 0, 0, 1)
     );
+}
+
+// Kernel
+#pragma kernel Cells
+
+[numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
+void Cells(uint3 id : SV_DispatchThreadID)
+{
+    if ((int)id.x >= _GridResolution.x || (int)id.y >= _GridResolution.y || (int)id.z >= _GridResolution.z) return;
+
+    int mark = _MarkerTexture[id];
+
+    int index = id.x * _GridResolution.y * _GridResolution.z + id.y * _GridResolution.z + id.z;
+
+    if (mark == 1)
+    {
+        _Properties[index].color = float4(0, 0, 1, 0.7);
+        return;
+    }
+
+    if (id.x == 0 || (float)id.x == _GridResolution.x - 1 || id.y == 0 || (float)id.y == _GridResolution.y - 1 || id.z == 0 || (float)id.z == _GridResolution.z - 1)
+    {
+        _Properties[index].color = float4(1, 1, 1, 0.01);
+        return;
+    }
+        
+    _Properties[index].color = 0.0;
+
 }

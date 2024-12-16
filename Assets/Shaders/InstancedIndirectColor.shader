@@ -1,8 +1,11 @@
 Shader "Custom/InstancedIndirectColor" {
     SubShader {
-        Tags { "RenderType" = "Opaque" }
+        Tags { "RenderType" = "Transparent"  "Queue" = "Transparent" }
 
         Pass {
+            Blend SrcAlpha OneMinusSrcAlpha
+            ZWrite Off
+
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag

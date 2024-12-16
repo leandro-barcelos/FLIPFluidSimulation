@@ -242,7 +242,7 @@ public class Simulator
     #endregion
 
     #region Simulation
-    public void Simulate(float timeStep, Vector3 mouseVelocity, Vector3 mouseRayOrigin, Vector3 mouseRayDirection, ComputeBuffer _meshPropertiesBuffer)
+    public void Simulate(float timeStep, Vector3 mouseVelocity, Vector3 mouseRayOrigin, Vector3 mouseRayDirection, ComputeBuffer _particleMeshPropertiesBuffer, ComputeBuffer _cellMeshPropertiesBuffer)
     {
         frameNumber++;
 
@@ -257,7 +257,7 @@ public class Simulator
         // TODO: subtract pressure from velocity
         TransferToParticles();
         Advect(timeStep);
-        UpdateMeshProperties(_meshPropertiesBuffer);
+        UpdateMeshProperties(_particleMeshPropertiesBuffer, _cellMeshPropertiesBuffer);
     }
 
     private void TransferToGrid()
@@ -375,21 +375,32 @@ public class Simulator
         Swap(ref particleVelocityTextureTemp, ref particleVelocityTexture);
     }
 
-    private void UpdateMeshProperties(ComputeBuffer _meshPropertiesBuffer)
+    private void UpdateMeshProperties(ComputeBuffer _particleMeshPropertiesBuffer, ComputeBuffer _cellMeshPropertiesBuffer)
     {
         // Set shader parameters
         updateMeshPropertiesShader.SetVector(ShaderIDs.ParticleResolution, particleResolution);
         updateMeshPropertiesShader.SetVector(ShaderIDs.GridSize, gridSize);
+        updateMeshPropertiesShader.SetVector(ShaderIDs.GridResolution, gridResolution);
         updateMeshPropertiesShader.SetFloat(ShaderIDs.ParticleRadius, 7f / gridResolutionX);
 
         // Set textures
         updateMeshPropertiesShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
-        updateMeshPropertiesShader.SetBuffer(0, ShaderIDs.Properties, _meshPropertiesBuffer);
+        updateMeshPropertiesShader.SetBuffer(0, ShaderIDs.Properties, _particleMeshPropertiesBuffer);
 
         // Dispatch the compute shader
         int threadGroupsX = Mathf.CeilToInt((float)particlesWidth / NumThreads);
         int threadGroupsY = Mathf.CeilToInt((float)particlesHeight / NumThreads);
         updateMeshPropertiesShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
+
+        // Set textures
+        updateMeshPropertiesShader.SetTexture(1, ShaderIDs.MarkerTexture, markerTexture);
+        updateMeshPropertiesShader.SetBuffer(1, ShaderIDs.Properties, _cellMeshPropertiesBuffer);
+
+        // Dispatch the compute shader
+        threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);
+        threadGroupsY = Mathf.CeilToInt((float)gridResolutionY / NumThreads);
+        int threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
+        updateMeshPropertiesShader.Dispatch(1, threadGroupsX, threadGroupsY, threadGroupsZ);
     }
 
     private void Advect(float timeStep)

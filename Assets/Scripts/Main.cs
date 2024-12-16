@@ -34,8 +34,8 @@ public class Parti : MonoBehaviour
 
     [Header("Rendering")]
     public float occlusionRange;
-    public Material particleMaterial;
-    public bool renderParticles;
+    public Material particleMaterial, cellMaterial;
+    public bool renderParticles, renderGrid;
 
     private Simulator simulator;
 
@@ -50,8 +50,9 @@ public class Parti : MonoBehaviour
     private List<Bounds> boxes;
 
     // Rendering
-    private Mesh _particleMesh;
-    private ComputeBuffer _meshPropertiesBuffer, _argsBuffer;
+    private Mesh _particleMesh, _cellMesh;
+    private ComputeBuffer _particleMeshPropertiesBuffer, _particleArgsBuffer;
+    private ComputeBuffer _cellMeshPropertiesBuffer, _cellArgsBuffer;
     private Bounds _bounds;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -79,8 +80,16 @@ public class Parti : MonoBehaviour
         Vector3Int gridSize = new(gridWidth, gridHeight, gridDepth);
         Vector3Int gridResolution = new(gridResolutionX, gridResolutionY, gridResolutionZ);
 
-        var sphereRadius = 7f / gridResolutionX;
+        CreateCellPositions(gridSize, gridResolution);
 
+        var sphereRadius = 7f / gridResolutionX;
+        Vector3[] particlesPositions = CreateParticlePositions(particleCount, sphereRadius);
+
+        simulator = new(particlesWidth, particlesHeight, particlesPositions, gridSize, gridResolution, particlesPerCell, flipness);
+    }
+
+    private Vector3[] CreateParticlePositions(int particleCount, float sphereRadius)
+    {
         _particleMesh = OctahedronSphereCreator.Create(1, 1f);
         _bounds = new Bounds(transform.position, Vector3.one * (occlusionRange + 1));
 
@@ -90,10 +99,10 @@ public class Parti : MonoBehaviour
         args[2] = _particleMesh.GetIndexStart(0);
         args[3] = _particleMesh.GetBaseVertex(0);
 
-        _argsBuffer = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
-        _argsBuffer.SetData(args);
+        _particleArgsBuffer = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
+        _particleArgsBuffer.SetData(args);
 
-        _meshPropertiesBuffer = new ComputeBuffer(particleCount, MeshProperties.Size());
+        _particleMeshPropertiesBuffer = new ComputeBuffer(particleCount, MeshProperties.Size());
 
         Vector3[] particlesPositions = new Vector3[particleCount];
         MeshProperties[] properties = new MeshProperties[particleCount];
@@ -148,10 +157,57 @@ public class Parti : MonoBehaviour
             particlesCreatedSoFar += particlesInBox;
         }
 
-        _meshPropertiesBuffer.SetData(properties);
-        particleMaterial.SetBuffer(ShaderIDs.Properties, _meshPropertiesBuffer);
+        _particleMeshPropertiesBuffer.SetData(properties);
+        particleMaterial.SetBuffer(ShaderIDs.Properties, _particleMeshPropertiesBuffer);
 
-        simulator = new(particlesWidth, particlesHeight, particlesPositions, gridSize, gridResolution, particlesPerCell, flipness);
+        return particlesPositions;
+    }
+
+    private void CreateCellPositions(Vector3Int gridSize, Vector3Int gridResolution)
+    {
+        int numCells = gridResolution.x * gridResolution.y * gridResolution.z;
+
+        _cellMesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+        _bounds = new Bounds(transform.position, Vector3.one * (occlusionRange + 1));
+
+        uint[] args = { 0, 0, 0, 0, 0 };
+        args[0] = _cellMesh.GetIndexCount(0);
+        args[1] = (uint)numCells;
+        args[2] = _cellMesh.GetIndexStart(0);
+        args[3] = _cellMesh.GetBaseVertex(0);
+
+        _cellArgsBuffer = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
+        _cellArgsBuffer.SetData(args);
+
+        _cellMeshPropertiesBuffer = new ComputeBuffer(numCells, MeshProperties.Size());
+
+        Vector3[] cellsPositions = new Vector3[numCells];
+        MeshProperties[] properties = new MeshProperties[numCells];
+
+        Vector3 cellScale = new(gridSize.x / (float)gridResolution.x, gridSize.y / (float)gridResolution.y, gridSize.z / (float)gridResolution.z);
+        Quaternion rotation = Quaternion.identity;
+
+        int index = 0;
+        for (var i = 0; i < gridResolution.x; i++)
+        {
+            for (var j = 0; j < gridResolution.y; j++)
+            {
+                for (var k = 0; k < gridResolution.z; k++)
+                {
+                    cellsPositions[index] = new(i * cellScale.x + cellScale.x / 2, j * cellScale.y + cellScale.y / 2, k * cellScale.z + cellScale.z / 2);
+                    properties[index] = new()
+                    {
+                        Mat = Matrix4x4.TRS(cellsPositions[index] - transform.localScale / 2, rotation, cellScale),
+                        Color = new(0, 0, 0, 0)
+                    };
+
+                    index++;
+                }
+            }
+        }
+
+        _cellMeshPropertiesBuffer.SetData(properties);
+        cellMaterial.SetBuffer(ShaderIDs.Properties, _cellMeshPropertiesBuffer);
     }
 
     private void InitializeBoxes()
@@ -175,16 +231,19 @@ public class Parti : MonoBehaviour
     {
         UpdateMouse(out Vector3 worldSpaceMouseRay, out Vector3 worldMouseVelocity);
 
-        simulator.Simulate(timeStep, worldMouseVelocity, camera.transform.position, worldSpaceMouseRay, _meshPropertiesBuffer);
+        simulator.Simulate(timeStep, worldMouseVelocity, camera.transform.position, worldSpaceMouseRay, _particleMeshPropertiesBuffer, _cellMeshPropertiesBuffer);
 
         if (renderParticles)
-            Graphics.DrawMeshInstancedIndirect(_particleMesh, 0, particleMaterial, _bounds, _argsBuffer);
+            Graphics.DrawMeshInstancedIndirect(_particleMesh, 0, particleMaterial, _bounds, _particleArgsBuffer);
+
+        if (renderGrid)
+            Graphics.DrawMeshInstancedIndirect(_cellMesh, 0, cellMaterial, _bounds, _cellArgsBuffer);
     }
 
     private void OnDestroy()
     {
-        _meshPropertiesBuffer?.Release();
-        _argsBuffer?.Release();
+        _particleMeshPropertiesBuffer?.Release();
+        _particleArgsBuffer?.Release();
     }
 
     private void UpdateMouse(out Vector3 worldSpaceMouseRay, out Vector3 worldMouseVelocity)
