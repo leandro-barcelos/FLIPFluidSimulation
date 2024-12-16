@@ -1,0 +1,29 @@
+#define NUM_THREADS 8
+
+#pragma kernel CSMain
+
+// Textures
+RWTexture3D<int> _MarkerTexture;
+Texture2D<float4> _ParticlePositionTexture;
+
+// Constants
+float3 _GridSize;
+float3 _GridResolution;
+float2 _ParticleResolution;
+
+// Helper functions
+
+[numthreads(NUM_THREADS, NUM_THREADS, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID) {
+    if ((int)id.x >= _ParticleResolution.x || (int)id.y >= _ParticleResolution.y) return;
+
+    float3 particlePos = _ParticlePositionTexture[id.xy].xyz;
+
+    float3 gridPos = (particlePos / _GridSize) * _GridResolution;
+
+    // Compute grid cell and position
+    int3 gridCell = floor(gridPos);
+    int old;
+
+    InterlockedCompareExchange(_MarkerTexture[gridCell], 0, 1, old);
+}

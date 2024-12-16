@@ -25,4 +25,5 @@ public class ShaderIDs
     public static readonly int ParticleRandomTexture = Shader.PropertyToID("_ParticleRandomTexture");
     public static readonly int FrameNumber = Shader.PropertyToID("_FrameNumber");
     public static readonly int ZOffset = Shader.PropertyToID("_ZOffset");
+    public static readonly int MarkerTexture = Shader.PropertyToID("_MarkerTexture");
 }

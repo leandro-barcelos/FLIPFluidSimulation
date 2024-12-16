@@ -38,7 +38,7 @@ public class Simulator
 
     public RenderTexture markerTexture, divergenceTexture, pressureTexture, tempSimulationTexture;
 
-    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader, transferToParticlesShader, updateMeshPropertiesShader, advectShader, copyShader;
+    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader, transferToParticlesShader, updateMeshPropertiesShader, advectShader, copyShader, markShader;
 
     #region Initializations
 
@@ -107,6 +107,7 @@ public class Simulator
         updateMeshPropertiesShader = Resources.Load<ComputeShader>("UpdateMeshProperties");
         advectShader = Resources.Load<ComputeShader>("Advect");
         copyShader = Resources.Load<ComputeShader>("Copy");
+        markShader = Resources.Load<ComputeShader>("Mark");
     }
 
     private void InitializeSimulationTextures()
@@ -120,7 +121,7 @@ public class Simulator
 
         weightTexture = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.ARGBHalf);
 
-        markerTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.ARGBHalf);
+        markerTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.RInt);
 
         divergenceTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.ARGBHalf);
 
@@ -246,7 +247,7 @@ public class Simulator
 
         TransferToGrid();
         NormalizeGrid();
-        // TODO: mark cells with fluid
+        Mark();
         Copy();
         AddForces(timeStep, mouseVelocity, mouseRayOrigin, mouseRayDirection);
         // TODO: enforce boundaries
@@ -425,6 +426,24 @@ public class Simulator
         int threadGroupsY = Mathf.CeilToInt((float)gridResolutionY / NumThreads);
         int threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
         copyShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
+    }
+
+    private void Mark()
+    {
+        // Set shader parameters
+        markShader.SetVector(ShaderIDs.GridResolution, gridResolution);
+        markShader.SetVector(ShaderIDs.GridSize, gridSize);
+        markShader.SetVector(ShaderIDs.ParticleResolution, particleResolution);
+
+        // Set textures
+        ClearOutRenderTexture(markerTexture);
+        markShader.SetTexture(0, ShaderIDs.MarkerTexture, markerTexture);
+        markShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
+
+        // Dispatch the compute shader
+        int threadGroupsX = Mathf.CeilToInt((float)particlesWidth / NumThreads);
+        int threadGroupsY = Mathf.CeilToInt((float)particlesHeight / NumThreads);
+        markShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
     }
     #endregion
 }
