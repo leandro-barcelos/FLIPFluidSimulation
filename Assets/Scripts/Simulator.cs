@@ -38,7 +38,7 @@ public class Simulator
 
     public RenderTexture markerTexture, divergenceTexture, pressureTexture, tempSimulationTexture;
 
-    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader, transferToParticlesShader, updateMeshPropertiesShader, advectShader, copyShader, markShader;
+    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader, transferToParticlesShader, updateMeshPropertiesShader, advectShader, copyShader, markShader, enforceBoundariesShader;
 
     #region Initializations
 
@@ -108,6 +108,7 @@ public class Simulator
         advectShader = Resources.Load<ComputeShader>("Advect");
         copyShader = Resources.Load<ComputeShader>("Copy");
         markShader = Resources.Load<ComputeShader>("Mark");
+        enforceBoundariesShader = Resources.Load<ComputeShader>("EnforceBoundaries");
     }
 
     private void InitializeSimulationTextures()
@@ -250,7 +251,7 @@ public class Simulator
         Mark();
         Copy();
         AddForces(timeStep, mouseVelocity, mouseRayOrigin, mouseRayDirection);
-        // TODO: enforce boundaries
+        EnforceBoundaries();
         // TODO: compute divergence
         // TODO: compute pressure via jacobi
         // TODO: subtract pressure from velocity
@@ -445,5 +446,24 @@ public class Simulator
         int threadGroupsY = Mathf.CeilToInt((float)particlesHeight / NumThreads);
         markShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
     }
+
+    private void EnforceBoundaries()
+    {
+        // Set shader parameters
+        enforceBoundariesShader.SetVector(ShaderIDs.GridResolution, gridResolution);
+
+        // Set textures
+        enforceBoundariesShader.SetTexture(0, ShaderIDs.TempVelocityTexture, tempVelocityTexture);
+        enforceBoundariesShader.SetTexture(0, ShaderIDs.VelocityTexture, velocityTexture);
+
+        // Dispatch the compute shader
+        int threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);
+        int threadGroupsY = Mathf.CeilToInt((float)gridResolutionY / NumThreads);
+        int threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
+        enforceBoundariesShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
+
+        Swap(ref velocityTexture, ref tempVelocityTexture);
+    }
+
     #endregion
 }
