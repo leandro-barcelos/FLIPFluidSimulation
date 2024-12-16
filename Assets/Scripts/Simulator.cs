@@ -229,6 +229,14 @@ public class Simulator
         return texture;
     }
 
+    public void ClearOutRenderTexture(RenderTexture renderTexture)
+    {
+        RenderTexture rt = RenderTexture.active;
+        RenderTexture.active = renderTexture;
+        GL.Clear(true, true, Color.clear);
+        RenderTexture.active = rt;
+    }
+
     #endregion
 
     #region Simulation
@@ -392,6 +400,7 @@ public class Simulator
         advectShader.SetFloat(ShaderIDs.TimeStep, timeStep);
 
         // Set textures
+        ClearOutRenderTexture(particlePositionTextureTemp);
         advectShader.SetTexture(0, ShaderIDs.ParticlePositionTextureTemp, particlePositionTextureTemp);
         advectShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
         advectShader.SetTexture(0, ShaderIDs.ParticleRandomTexture, particleRandomTexture);
