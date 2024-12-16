@@ -81,7 +81,7 @@ public class Parti : MonoBehaviour
 
         var sphereRadius = 7f / gridResolutionX;
 
-        _particleMesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+        _particleMesh = OctahedronSphereCreator.Create(1, 1f);
         _bounds = new Bounds(transform.position, Vector3.one * (occlusionRange + 1));
 
         uint[] args = { 0, 0, 0, 0, 0 };
