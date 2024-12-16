@@ -119,7 +119,7 @@ public class Simulator
             );
 
             // Generate a random normalized direction
-            var randomDirection = Random.insideUnitSphere.normalized;
+            var randomDirection = UnityEngine.Random.insideUnitSphere.normalized;
             particleRandoms[i] = new Color(
                 randomDirection.x,
                 randomDirection.y,
