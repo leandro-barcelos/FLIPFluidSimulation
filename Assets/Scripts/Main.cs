@@ -187,49 +187,21 @@ public class Parti : MonoBehaviour
 
     private void UpdateMouse(out Vector3 worldSpaceMouseRay, out Vector3 worldMouseVelocity)
     {
-        // Calculate the field of view
-        float fov = camera.fieldOfView * Mathf.Deg2Rad;
+        worldSpaceMouseRay = Vector3.zero;
+        worldMouseVelocity = Vector3.zero;
 
-        // Get the mouse position in screen space
-        Vector3 mousePosition = Input.mousePosition;
-
-        // Convert the mouse position to normalized device coordinates (-1 to 1)
-        Vector3 ndcMousePosition = new Vector3(
-            (mousePosition.x / Screen.width) * 2 - 1,
-            (mousePosition.y / Screen.height) * 2 - 1,
-            -1.0f
-        );
-
-        // Calculate the view space mouse ray
-        Vector3 viewSpaceMouseRay = new Vector3(
-            ndcMousePosition.x * Mathf.Tan(fov / 2.0f) * (Screen.width / Screen.height),
-            ndcMousePosition.y * Mathf.Tan(fov / 2.0f),
-            -1.0f
-        );
-
-        // Calculate the mouse plane position
-        Vector3 mousePlanePosition = viewSpaceMouseRay * cameraOrbit.distance;
-
-        // Calculate the mouse velocity
-        Vector3 mouseVelocity = mousePlanePosition - lastMousePlane;
-
-        if (Input.GetMouseButton(0))
+        if (Input.GetMouseButton(2))
         {
-            mouseVelocity = Vector3.zero;
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            if (Physics.Raycast(ray, out _))
+            {
+                Vector3 currentMousePlane = ray.GetPoint(cameraOrbit.distance);
+                worldMouseVelocity = (currentMousePlane - lastMousePlane) / Time.deltaTime * 0.6f;
+                lastMousePlane = currentMousePlane;
+
+                worldSpaceMouseRay = ray.direction;
+            }
         }
-
-        lastMousePlane = mousePlanePosition;
-
-        // Transform the view space mouse ray to world space
-        worldSpaceMouseRay = camera.transform.TransformDirection(viewSpaceMouseRay);
-        worldSpaceMouseRay.Normalize();
-
-        // Get the camera's right and up vectors
-        Vector3 cameraRight = camera.transform.right;
-        Vector3 cameraUp = camera.transform.up;
-
-        // Calculate the mouse velocity in world space
-        worldMouseVelocity = mouseVelocity.x * cameraRight + mouseVelocity.y * cameraUp;
     }
 
     private int GetParticleCount()
