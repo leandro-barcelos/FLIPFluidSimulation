@@ -448,7 +448,8 @@ public class Simulator
         markShader.SetVector(ShaderIDs.ParticleResolution, particleResolution);
 
         // Set textures
-        ClearOutRenderTexture(markerTexture);
+        markerTexture.Release();
+        markerTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.RInt);
         markShader.SetTexture(0, ShaderIDs.MarkerTexture, markerTexture);
         markShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
 
