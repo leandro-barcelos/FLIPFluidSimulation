@@ -1,0 +1,46 @@
+#define NUM_THREADS 8
+
+#pragma enable_d3d11_debug_symbols
+
+// Buffers
+Texture3D<float4> _WeightTexture;
+Texture3D<float4> _VelocityTexture;
+Texture3D<int> _MarkerTexture;
+RWTexture3D<float> _DivergenceTexture;
+
+// Parameters
+float3 _GridResolution;
+float _MaxDensity;
+
+// Helper functions
+
+// Kernel
+#pragma kernel CSMain
+
+[numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
+void CSMain(uint3 id : SV_DispatchThreadID) {
+    if ((int)id.x >= _GridResolution.x || (int)id.y >= _GridResolution.y || (int)id.z >= _GridResolution.z) return;
+
+    int fluidCell = _MarkerTexture[id];
+    if (fluidCell == 0) 
+    {
+        _DivergenceTexture[id] = 0.0;
+        return;
+    }
+
+    float leftX = _VelocityTexture[id + float3(-1, 0, 0)].x;
+    float rightX = _VelocityTexture[id + float3(1, 0, 0)].x;
+
+    float bottomY = _VelocityTexture[id + float3(0, -1, 0)].y;
+    float topY = _VelocityTexture[id + float3(1, 1, 0)].y;
+
+    float backZ =  _VelocityTexture[id + float3(0, 0, -1)].z;
+    float frontZ = _VelocityTexture[id + float3(0, 0, 1)].z;
+
+    float divergence = ((rightX - leftX) + (topY - bottomY) + (frontZ - backZ));
+
+    float density = _WeightTexture[id].a;
+    divergence -= max((density - _MaxDensity) * 1.0, 0.0);
+
+    _DivergenceTexture[id] = divergence;
+}

@@ -38,7 +38,7 @@ public class Simulator
 
     public RenderTexture markerTexture, divergenceTexture, pressureTexture, tempSimulationTexture;
 
-    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader, transferToParticlesShader, updateMeshPropertiesShader, advectShader, copyShader, markShader, enforceBoundariesShader;
+    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader, transferToParticlesShader, updateMeshPropertiesShader, advectShader, copyShader, markShader, enforceBoundariesShader, divergenceShader;
 
     #region Initializations
 
@@ -109,6 +109,7 @@ public class Simulator
         copyShader = Resources.Load<ComputeShader>("Copy");
         markShader = Resources.Load<ComputeShader>("Mark");
         enforceBoundariesShader = Resources.Load<ComputeShader>("EnforceBoundaries");
+        divergenceShader = Resources.Load<ComputeShader>("Divergence");
     }
 
     private void InitializeSimulationTextures()
@@ -124,7 +125,7 @@ public class Simulator
 
         markerTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.RInt);
 
-        divergenceTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.ARGBHalf);
+        divergenceTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.RFloat);
 
         pressureTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.ARGBHalf);
 
@@ -231,14 +232,6 @@ public class Simulator
         return texture;
     }
 
-    public void ClearOutRenderTexture(RenderTexture renderTexture)
-    {
-        RenderTexture rt = RenderTexture.active;
-        RenderTexture.active = renderTexture;
-        GL.Clear(true, true, Color.clear);
-        RenderTexture.active = rt;
-    }
-
     #endregion
 
     #region Simulation
@@ -252,7 +245,7 @@ public class Simulator
         Copy();
         AddForces(timeStep, mouseVelocity, mouseRayOrigin, mouseRayDirection);
         EnforceBoundaries();
-        // TODO: compute divergence
+        Divergence();
         // TODO: compute pressure via jacobi
         // TODO: subtract pressure from velocity
         TransferToParticles();
@@ -413,7 +406,8 @@ public class Simulator
         advectShader.SetFloat(ShaderIDs.TimeStep, timeStep);
 
         // Set textures
-        ClearOutRenderTexture(particlePositionTextureTemp);
+        particlePositionTextureTemp.Release();
+        particlePositionTextureTemp = CreateRenderTexture2D(particlesWidth, particlesHeight, RenderTextureFormat.ARGBFloat);
         advectShader.SetTexture(0, ShaderIDs.ParticlePositionTextureTemp, particlePositionTextureTemp);
         advectShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
         advectShader.SetTexture(0, ShaderIDs.ParticleRandomTexture, particleRandomTexture);
@@ -475,6 +469,27 @@ public class Simulator
         enforceBoundariesShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
 
         Swap(ref velocityTexture, ref tempVelocityTexture);
+    }
+
+    private void Divergence()
+    {
+        // Set shader parameters
+        divergenceShader.SetVector(ShaderIDs.GridResolution, gridResolution);
+        divergenceShader.SetFloat(ShaderIDs.MaxDensity, particleDensity);
+
+        // Set textures
+        divergenceTexture.Release();
+        divergenceTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.RFloat);
+        divergenceShader.SetTexture(0, ShaderIDs.DivergenceTexture, divergenceTexture);
+        divergenceShader.SetTexture(0, ShaderIDs.VelocityTexture, velocityTexture);
+        divergenceShader.SetTexture(0, ShaderIDs.MarkerTexture, markerTexture);
+        divergenceShader.SetTexture(0, ShaderIDs.WeightTexture, weightTexture);
+
+        // Dispatch the compute shader
+        int threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);
+        int threadGroupsY = Mathf.CeilToInt((float)gridResolutionY / NumThreads);
+        int threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
+        divergenceShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
     }
 
     #endregion
