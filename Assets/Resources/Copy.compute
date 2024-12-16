@@ -1,0 +1,13 @@
+#define NUM_THREADS 8
+
+#pragma kernel CSMain
+
+// Textures
+Texture3D<float4> _VelocityTexture;
+RWTexture3D<float4> _OriginalVelocityTexture;
+
+[numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    _OriginalVelocityTexture[id] = _VelocityTexture[id];
+}

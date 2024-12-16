@@ -1,0 +1,40 @@
+#define NUM_THREADS 8
+
+#pragma enable_d3d11_debug_symbols
+
+struct MeshProperties {
+    float4x4 mat;
+    float4 color;
+};
+
+// Buffers
+Texture2D<float4> _ParticlePositionTexture;
+RWStructuredBuffer<MeshProperties> _Properties;
+
+// Parameters
+float _ParticleRadius;
+float2 _ParticleResolution;
+float3 _GridSize;
+
+// Kernel
+#pragma kernel CSMain
+
+[numthreads(NUM_THREADS, NUM_THREADS, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    if ((int)id.x >= _ParticleResolution.x || (int)id.y >= _ParticleResolution.y) return;
+
+    float3 pos = _ParticlePositionTexture[id.xy].xyz;
+
+    int index = id.x + id.y * _ParticleResolution.x;
+
+    if (pos.x > 40 || pos.y > 20 || pos.z > 20)
+        _Properties[index].color = float4(0, 0, 0, 1);
+
+    _Properties[index].mat = float4x4(
+        float4(_ParticleRadius * 2.0, 0, 0, pos.x - _GridSize.x * 0.5),
+        float4(0, _ParticleRadius * 2.0, 0, pos.y - _GridSize.y * 0.5),
+        float4(0, 0, _ParticleRadius * 2.0, pos.z - _GridSize.z * 0.5),
+        float4(0, 0, 0, 1)
+    );
+}

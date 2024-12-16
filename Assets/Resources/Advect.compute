@@ -1,0 +1,67 @@
+#define NUM_THREADS 8
+
+#pragma enable_d3d11_debug_symbols
+
+// Buffers
+Texture2D<float4> _ParticlePositionTexture;
+Texture2D<float4> _ParticleRandomTexture;
+Texture3D<float4> _VelocityTexture;
+RWTexture2D<float4> _ParticlePositionTextureTemp;
+
+// Parameters
+float3 _GridResolution;
+float3 _GridSize;
+float2 _ParticleResolution;
+float _TimeStep;
+int _FrameNumber;
+
+// Helper functions
+float sampleXVelocity(float3 position) {
+    float3 cellIndex = position + float3(0.0, -0.5, -0.5);
+    return _VelocityTexture[cellIndex].x;
+}
+
+float sampleYVelocity(float3 position) {
+    float3 cellIndex = position + float3(-0.5, 0.0, -0.5);
+    return _VelocityTexture[cellIndex].y;
+}
+
+float sampleZVelocity(float3 position) {
+    float3 cellIndex = position + float3(-0.5, -0.5, 0.0);
+    return _VelocityTexture[cellIndex].z;
+}
+
+float3 sampleVelocity(float3 position)
+{
+    return float3(sampleXVelocity(position), sampleYVelocity(position), sampleZVelocity(position));
+}
+
+// Kernel
+#pragma kernel CSMain
+
+[numthreads(NUM_THREADS, NUM_THREADS, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    if ((int)id.x >= _ParticleResolution.x || (int)id.y >= _ParticleResolution.y) return;
+
+    float3 position = _ParticlePositionTexture[id.xy].xyz;
+    float3 gridPosition = (position / _GridSize) * _GridResolution;
+    float3 randomDirection = _ParticleRandomTexture[(id.xy + _FrameNumber) % _ParticleResolution].xyz;
+
+    float3 cellIndex = floor(gridPosition);
+
+    float3 velocity = sampleVelocity(cellIndex);
+
+    float3 halfwayPosition = position + velocity * _TimeStep * 0.5;
+    gridPosition = (halfwayPosition / _GridSize) * _GridResolution;
+    float3 halfwayVelocity = sampleVelocity(floor(gridPosition));
+
+    float3 step = halfwayVelocity * _TimeStep;
+
+    step += 0.05 * randomDirection * length(velocity) * _TimeStep;
+
+    float3 newPosition = position + step;
+    newPosition = clamp(newPosition, 0.01, _GridSize - 0.01);
+
+    _ParticlePositionTextureTemp[id.xy] = float4(newPosition, 0.0);
+}

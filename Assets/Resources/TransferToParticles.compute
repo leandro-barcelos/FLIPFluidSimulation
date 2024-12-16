@@ -1,0 +1,60 @@
+#define NUM_THREADS 8
+
+#pragma kernel CSMain
+
+// Textures
+Texture3D<float4> _VelocityTexture;
+Texture3D<float4> _OriginalVelocityTexture;
+Texture2D<float4> _ParticlePositionTexture;
+Texture2D<float4> _ParticleVelocityTexture;
+RWTexture2D<float4> _ParticleVelocityTextureTemp;
+
+// Constants
+float3 _GridSize;
+float3 _GridResolution;
+float2 _ParticleResolution;
+float _Flipness;
+
+// Helper functions
+float sampleXVelocity(Texture3D _texture, float3 position) {
+    float3 cellIndex = position + float3(0.0, -0.5, -0.5);
+    return _texture[cellIndex].x;
+}
+
+float sampleYVelocity(Texture3D _texture, float3 position) {
+    float3 cellIndex = position + float3(-0.5, 0.0, -0.5);
+    return _texture[cellIndex].y;
+}
+
+float sampleZVelocity(Texture3D _texture, float3 position) {
+    float3 cellIndex = position + float3(-0.5, -0.5, 0.0);
+    return _texture[cellIndex].z;
+}
+
+float3 sampleVelocity(Texture3D _texture, float3 position)
+{
+    return float3(sampleXVelocity(_texture, position), sampleYVelocity(_texture, position), sampleZVelocity(_texture, position));
+}
+
+[numthreads(NUM_THREADS, NUM_THREADS, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID) {
+    if ((int)id.x >= _ParticleResolution.x || (int)id.y >= _ParticleResolution.y) return;
+
+    float3 particlePosition = _ParticlePositionTexture[id.xy].xyz;
+    particlePosition = (particlePosition / _GridSize) * _GridResolution;
+
+    float3 particleVelocity = _ParticleVelocityTexture[id.xy].xyz;
+
+    float3 cellIndex = floor(particlePosition);
+
+    float3 currentVelocity = sampleVelocity(_VelocityTexture, cellIndex);
+    float3 originalVelocity = sampleVelocity(_OriginalVelocityTexture, cellIndex);
+
+    float3 velocityChange = currentVelocity - originalVelocity;
+
+    float3 flipVelocity = particleVelocity + velocityChange;
+    float3 picVelocity = currentVelocity;
+
+    _ParticleVelocityTextureTemp[id.xy] = float4(lerp(picVelocity, flipVelocity, _Flipness), 0.0);
+    
+}
