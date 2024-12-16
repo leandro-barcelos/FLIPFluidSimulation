@@ -249,6 +249,7 @@ MonoBehaviour:
   flipness: 0.99
   occlusionRange: 100
   particleMaterial: {fileID: 2100000, guid: cee1f6ce7317f70a589ea42c6c9cd2c6, type: 2}
+  renderParticles: 1
 --- !u!1 &197996291
 GameObject:
   m_ObjectHideFlags: 0

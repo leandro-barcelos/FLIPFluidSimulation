@@ -35,6 +35,7 @@ public class Parti : MonoBehaviour
     [Header("Rendering")]
     public float occlusionRange;
     public Material particleMaterial;
+    public bool renderParticles;
 
     private Simulator simulator;
 
@@ -176,7 +177,8 @@ public class Parti : MonoBehaviour
 
         simulator.Simulate(timeStep, worldMouseVelocity, camera.transform.position, worldSpaceMouseRay, _meshPropertiesBuffer);
 
-        Graphics.DrawMeshInstancedIndirect(_particleMesh, 0, particleMaterial, _bounds, _argsBuffer);
+        if (renderParticles)
+            Graphics.DrawMeshInstancedIndirect(_particleMesh, 0, particleMaterial, _bounds, _argsBuffer);
     }
 
     private void OnDestroy()
