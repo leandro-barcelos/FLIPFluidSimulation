@@ -74,6 +74,30 @@ public class Simulator
         InitializeSimulationTextures();
     }
 
+    ~Simulator()
+    {
+        quadVertexBuffer.Release();
+        particleVertexBuffer.Release();
+
+        particlePositionTexture.Release();
+        particlePositionTextureTemp.Release();
+
+        particleVelocityTexture.Release();
+        particleVelocityTextureTemp.Release();
+
+        particleRandomTexture.Release();
+
+        velocityTexture.Release();
+        tempVelocityTexture.Release();
+        originalVelocityTexture.Release();
+        weightTexture.Release();
+
+        markerTexture.Release();
+        divergenceTexture.Release();
+        pressureTexture.Release();
+        tempSimulationTexture.Release();
+    }
+
     private void InitShaders()
     {
         transferToGridShader = Resources.Load<ComputeShader>("TransferToGrid");
@@ -164,24 +188,6 @@ public class Simulator
 
     #endregion
 
-    public void Simulate(float timeStep, Vector3 mouseVelocity, Vector3 mouseRayOrigin, Vector3 mouseRayDirection, ComputeBuffer _meshPropertiesBuffer)
-    {
-        frameNumber++;
-
-        TransferToGrid();
-        NormalizeGrid();
-        // TODO: mark cells with fluid
-        Copy();
-        AddForces(timeStep, mouseVelocity, mouseRayOrigin, mouseRayDirection);
-        // TODO: enforce boundaries
-        // TODO: compute divergence
-        // TODO: compute pressure via jacobi
-        // TODO: subtract pressure from velocity
-        TransferToParticles();
-        Advect(timeStep);
-        UpdateMeshProperties(_meshPropertiesBuffer);
-    }
-
     #region Helper Functions
 
     private void Swap(ref RenderTexture a, ref RenderTexture b)
@@ -225,28 +231,23 @@ public class Simulator
 
     #endregion
 
-    ~Simulator()
+    #region Simulation
+    public void Simulate(float timeStep, Vector3 mouseVelocity, Vector3 mouseRayOrigin, Vector3 mouseRayDirection, ComputeBuffer _meshPropertiesBuffer)
     {
-        quadVertexBuffer.Release();
-        particleVertexBuffer.Release();
+        frameNumber++;
 
-        particlePositionTexture.Release();
-        particlePositionTextureTemp.Release();
-
-        particleVelocityTexture.Release();
-        particleVelocityTextureTemp.Release();
-
-        particleRandomTexture.Release();
-
-        velocityTexture.Release();
-        tempVelocityTexture.Release();
-        originalVelocityTexture.Release();
-        weightTexture.Release();
-
-        markerTexture.Release();
-        divergenceTexture.Release();
-        pressureTexture.Release();
-        tempSimulationTexture.Release();
+        TransferToGrid();
+        NormalizeGrid();
+        // TODO: mark cells with fluid
+        Copy();
+        AddForces(timeStep, mouseVelocity, mouseRayOrigin, mouseRayDirection);
+        // TODO: enforce boundaries
+        // TODO: compute divergence
+        // TODO: compute pressure via jacobi
+        // TODO: subtract pressure from velocity
+        TransferToParticles();
+        Advect(timeStep);
+        UpdateMeshProperties(_meshPropertiesBuffer);
     }
 
     private void TransferToGrid()
@@ -416,4 +417,5 @@ public class Simulator
         int threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
         copyShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
     }
+    #endregion
 }
