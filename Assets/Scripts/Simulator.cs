@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -250,10 +251,21 @@ public class Simulator
 
     private void TransferToGrid()
     {
+        int4[] init = new int4[gridResolutionX * gridResolutionY * gridResolutionZ];
+        ComputeBuffer intWeightBuffer = new(gridResolutionX * gridResolutionY * gridResolutionZ, sizeof(int) * 4);
+        intWeightBuffer.SetData(init);
+
+        ComputeBuffer intTempVelocityBuffer = new(gridResolutionX * gridResolutionY * gridResolutionZ, sizeof(int) * 4);
+        intTempVelocityBuffer.SetData(init);
+
         // Set shader parameters
         transferToGridShader.SetVector(ShaderIDs.GridResolution, gridResolution);
         transferToGridShader.SetVector(ShaderIDs.GridSize, gridSize);
         transferToGridShader.SetVector(ShaderIDs.ParticleResolution, particleResolution);
+
+        int threadGroupsX;
+        int threadGroupsY;
+        int threadGroupsZ;
 
         var splatDepth = 5;
         for (int z = -(splatDepth - 1) / 2; z <= (splatDepth - 1) / 2; ++z)
@@ -263,14 +275,29 @@ public class Simulator
             // Set textures
             transferToGridShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
             transferToGridShader.SetTexture(0, ShaderIDs.ParticleVelocityTexture, particleVelocityTexture);
-            transferToGridShader.SetTexture(0, ShaderIDs.WeightTexture, weightTexture);
-            transferToGridShader.SetTexture(0, ShaderIDs.TempVelocityTexture, tempVelocityTexture);
+
+            transferToGridShader.SetBuffer(0, "_IntWeight", intWeightBuffer);
+            transferToGridShader.SetBuffer(0, "_IntTempVelocity", intTempVelocityBuffer);
 
             // Dispatch the compute shader
-            int threadGroupsX = Mathf.CeilToInt((float)particlesWidth / NumThreads);
-            int threadGroupsY = Mathf.CeilToInt((float)particlesHeight / NumThreads);
+            threadGroupsX = Mathf.CeilToInt((float)particlesWidth / NumThreads);
+            threadGroupsY = Mathf.CeilToInt((float)particlesHeight / NumThreads);
             transferToGridShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
         }
+
+        transferToGridShader.SetTexture(1, ShaderIDs.WeightTexture, weightTexture);
+        transferToGridShader.SetTexture(1, ShaderIDs.TempVelocityTexture, tempVelocityTexture);
+
+        transferToGridShader.SetBuffer(1, "_IntWeight", intWeightBuffer);
+        transferToGridShader.SetBuffer(1, "_IntTempVelocity", intTempVelocityBuffer);
+
+        threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);
+        threadGroupsY = Mathf.CeilToInt((float)gridResolutionY / NumThreads);
+        threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
+        transferToGridShader.Dispatch(1, threadGroupsX, threadGroupsY, threadGroupsZ);
+
+        intWeightBuffer.Release();
+        intTempVelocityBuffer.Release();
     }
 
     private void NormalizeGrid()
