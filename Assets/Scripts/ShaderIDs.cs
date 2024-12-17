@@ -28,4 +28,6 @@ public class ShaderIDs
     public static readonly int MarkerTexture = Shader.PropertyToID("_MarkerTexture");
     public static readonly int MaxDensity = Shader.PropertyToID("_MaxDensity");
     public static readonly int DivergenceTexture = Shader.PropertyToID("_DivergenceTexture");
+    public static readonly int PressureTexture = Shader.PropertyToID("_PressureTexture");
+    public static readonly int TempSimulationTexture = Shader.PropertyToID("_TempSimulationTexture");
 }

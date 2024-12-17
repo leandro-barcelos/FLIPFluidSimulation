@@ -1,0 +1,49 @@
+#define NUM_THREADS 8
+
+#pragma enable_d3d11_debug_symbols
+
+// Buffers
+Texture3D<int> _MarkerTexture;
+Texture3D<float> _DivergenceTexture;
+SamplerState sampler_DivergenceTexture;
+Texture3D<float> _PressureTexture;
+SamplerState sampler_PressureTexture;
+RWTexture3D<float> _TempSimulationTexture;
+
+// Parameters
+float3 _GridResolution;
+float3 _InvGridResolution;
+
+// Helper functions
+
+// Kernel
+#pragma kernel CSMain
+
+[numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
+void CSMain(uint3 id : SV_DispatchThreadID) {
+    if ((int)id.x >= _GridResolution.x || (int)id.y >= _GridResolution.y || (int)id.z >= _GridResolution.z) return;
+
+    float3 centerCoords = id * _InvGridResolution;
+
+    int fluidCell = _MarkerTexture[id];
+    if (fluidCell == 0) 
+    {
+        _TempSimulationTexture[id] = 0.0;
+        return;
+    }
+
+    float3 delta = _InvGridResolution;
+
+    float divergenceCenter = _DivergenceTexture.SampleLevel(sampler_DivergenceTexture, centerCoords, 0);
+
+    float left = _PressureTexture.SampleLevel(sampler_PressureTexture, centerCoords + float3(-delta.x, 0.0, 0.0), 0);
+    float right = _PressureTexture.SampleLevel(sampler_PressureTexture, centerCoords + float3(delta.x, 0.0, 0.0), 0);
+    float bottom = _PressureTexture.SampleLevel(sampler_PressureTexture, centerCoords + float3(0.0, -delta.y, 0.0), 0);
+    float top = _PressureTexture.SampleLevel(sampler_PressureTexture, centerCoords + float3(0.0, delta.y, 0.0), 0);
+    float back = _PressureTexture.SampleLevel(sampler_PressureTexture, centerCoords + float3(0.0, 0.0, -delta.z), 0);
+    float front = _PressureTexture.SampleLevel(sampler_PressureTexture, centerCoords + float3(0.0, 0.0, delta.z), 0);
+
+    float newPressure = (left + right + bottom + top + back + front - divergenceCenter) / 6.0;
+
+    _TempSimulationTexture[id] = newPressure;
+}

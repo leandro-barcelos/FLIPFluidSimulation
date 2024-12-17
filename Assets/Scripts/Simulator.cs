@@ -38,7 +38,7 @@ public class Simulator
 
     public RenderTexture markerTexture, divergenceTexture, pressureTexture, tempSimulationTexture;
 
-    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader, transferToParticlesShader, updateMeshPropertiesShader, advectShader, copyShader, markShader, enforceBoundariesShader, divergenceShader;
+    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader, transferToParticlesShader, updateMeshPropertiesShader, advectShader, copyShader, markShader, enforceBoundariesShader, divergenceShader, jacobiShader;
 
     #region Initializations
 
@@ -110,6 +110,7 @@ public class Simulator
         markShader = Resources.Load<ComputeShader>("Mark");
         enforceBoundariesShader = Resources.Load<ComputeShader>("EnforceBoundaries");
         divergenceShader = Resources.Load<ComputeShader>("Divergence");
+        jacobiShader = Resources.Load<ComputeShader>("Jacobi");
     }
 
     private void InitializeSimulationTextures()
@@ -127,9 +128,9 @@ public class Simulator
 
         divergenceTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.RFloat);
 
-        pressureTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.ARGBHalf);
+        pressureTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.RFloat);
 
-        tempSimulationTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.ARGBHalf);
+        tempSimulationTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.RFloat);
     }
 
     private void InitializeParticleTextures(Vector3[] particlePositions)
@@ -246,7 +247,7 @@ public class Simulator
         AddForces(timeStep, mouseVelocity, mouseRayOrigin, mouseRayDirection);
         EnforceBoundaries();
         Divergence();
-        // TODO: compute pressure via jacobi
+        Jacobi();
         // TODO: subtract pressure from velocity
         TransferToParticles();
         Advect(timeStep);
@@ -496,6 +497,35 @@ public class Simulator
         int threadGroupsY = Mathf.CeilToInt((float)gridResolutionY / NumThreads);
         int threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
         divergenceShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
+    }
+
+    private void Jacobi()
+    {
+        // Set shader parameters
+        jacobiShader.SetVector(ShaderIDs.GridResolution, gridResolution);
+        jacobiShader.SetVector(ShaderIDs.InvGridResolution, invGridResolution);
+
+        // Set textures
+        pressureTexture.Release();
+        pressureTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.RFloat);
+        jacobiShader.SetTexture(0, ShaderIDs.MarkerTexture, markerTexture);
+        jacobiShader.SetTexture(0, ShaderIDs.DivergenceTexture, divergenceTexture);
+
+        var pressureJacobiIterations = 50;
+        for (var i = 0; i < pressureJacobiIterations; i++)
+        {
+            // Set textures
+            jacobiShader.SetTexture(0, ShaderIDs.PressureTexture, pressureTexture);
+            jacobiShader.SetTexture(0, ShaderIDs.TempSimulationTexture, tempSimulationTexture);
+
+            // Dispatch the compute shader
+            int threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);
+            int threadGroupsY = Mathf.CeilToInt((float)gridResolutionY / NumThreads);
+            int threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
+            jacobiShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
+
+            Swap(ref tempSimulationTexture, ref pressureTexture);
+        }
     }
 
     #endregion
