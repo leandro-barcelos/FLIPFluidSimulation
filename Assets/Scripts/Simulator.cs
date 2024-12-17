@@ -271,22 +271,28 @@ public class Simulator
         int threadGroupsY;
         int threadGroupsZ;
 
-        var splatDepth = 5;
-        for (int z = -(splatDepth - 1) / 2; z <= (splatDepth - 1) / 2; ++z)
+        var splatDepth = 3;
+        for (int x = -(splatDepth - 1) / 2; x <= (splatDepth - 1) / 2; ++x)
         {
-            transferToGridShader.SetInt(ShaderIDs.ZOffset, z);
+            for (int y = -(splatDepth - 1) / 2; y <= (splatDepth - 1) / 2; ++y)
+            {
+                for (int z = -(splatDepth - 1) / 2; z <= (splatDepth - 1) / 2; ++z)
+                {
+                    transferToGridShader.SetVector(ShaderIDs.Offset, new(x, y, z));
 
-            // Set textures
-            transferToGridShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
-            transferToGridShader.SetTexture(0, ShaderIDs.ParticleVelocityTexture, particleVelocityTexture);
+                    // Set textures
+                    transferToGridShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
+                    transferToGridShader.SetTexture(0, ShaderIDs.ParticleVelocityTexture, particleVelocityTexture);
 
-            transferToGridShader.SetBuffer(0, "_IntWeight", intWeightBuffer);
-            transferToGridShader.SetBuffer(0, "_IntTempVelocity", intTempVelocityBuffer);
+                    transferToGridShader.SetBuffer(0, "_IntWeight", intWeightBuffer);
+                    transferToGridShader.SetBuffer(0, "_IntTempVelocity", intTempVelocityBuffer);
 
-            // Dispatch the compute shader
-            threadGroupsX = Mathf.CeilToInt((float)particlesWidth / NumThreads);
-            threadGroupsY = Mathf.CeilToInt((float)particlesHeight / NumThreads);
-            transferToGridShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
+                    // Dispatch the compute shader
+                    threadGroupsX = Mathf.CeilToInt((float)particlesWidth / NumThreads);
+                    threadGroupsY = Mathf.CeilToInt((float)particlesHeight / NumThreads);
+                    transferToGridShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
+                }
+            }
         }
 
         transferToGridShader.SetTexture(1, ShaderIDs.WeightTexture, weightTexture);

@@ -14,7 +14,7 @@ RWTexture3D<float4> _TempVelocityTexture;
 float3 _GridSize;
 float3 _GridResolution;
 float2 _ParticleResolution;
-int _ZOffset;
+int3 _Offset;
 
 // Helper functions
 float h(float r) {
@@ -23,6 +23,12 @@ float h(float r) {
 
 float k(float3 v) {
     return h(v.x) * h(v.y) * h(v.z);
+}
+
+float getScale(float max_value)
+{
+    int max_int = 2147483647;
+    return max_int / max_value;
 }
 
 [numthreads(NUM_THREADS, NUM_THREADS, 1)]
@@ -36,25 +42,27 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
 
     // Compute grid cell and position
     float3 gridCell = floor(gridPos);
-    gridCell.z += _ZOffset;
+    gridCell += _Offset;
 
-    float3 xPosition = float3(gridCell.x, gridCell.y + 0.5, gridCell.z + 0.5);
-    float xWeight = k(particlePos - xPosition);
+    float3 xPosition = gridCell + float3(0.0, 0.5, 0.5);
+    float xWeight = k(gridPos - xPosition);
 
-    float3 yPosition = float3(gridCell.x + 0.5, gridCell.y, gridCell.z + 0.5);
-    float yWeight = k(particlePos - yPosition);
+    float3 yPosition = gridCell + float3(0.5, 0.0, 0.5);
+    float yWeight = k(gridPos - yPosition);
 
-    float3 zPosition = float3(gridCell.x + 0.5, gridCell.y + 0.5, gridCell.z);
-    float zWeight = k(particlePos - zPosition);
+    float3 zPosition = gridCell + float3(0.5, 0.5, 0.0);
+    float zWeight = k(gridPos - zPosition);
 
-    float3 scalarPosition = float3(gridCell.x + 0.5, gridCell.y + 0.5, gridCell.z + 0.5);
-    float scalarWeight = k(particlePos - scalarPosition);
+    float3 scalarPosition = gridCell + float3(0.5, 0.5, 0.5);
+    float scalarWeight = k(gridPos - scalarPosition);
 
     int index = gridCell.x * _GridResolution.y * _GridResolution.z + gridCell.y * _GridResolution.z + gridCell.z;
     float4 weight = float4(xWeight, yWeight, zWeight, scalarWeight);
     float4 velocity = float4(particleVel, 0.0) * weight;
-    int4 qWeight = (int4)weight;
-    int4 qVelocity = (int4)velocity;
+    float max_value = _ParticleResolution.x * _ParticleResolution.y;
+    float scale = getScale(max_value);
+    int4 qWeight = round(weight * scale);
+    int4 qVelocity = round(velocity * scale);
     InterlockedAdd(_IntTempVelocity[index].x, qVelocity.x);
     InterlockedAdd(_IntTempVelocity[index].y, qVelocity.y);
     InterlockedAdd(_IntTempVelocity[index].z, qVelocity.z);
@@ -72,6 +80,10 @@ void BufferToTexture(uint3 id : SV_DispatchThreadID){
         return;
 
     int index = id.x * _GridResolution.y * _GridResolution.z + id.y * _GridResolution.z + id.z;
-    _WeightTexture[id] = (float4)_IntWeight[index];
-    _TempVelocityTexture[id] = (float4)_IntTempVelocity[index];
+
+    float max_value = _ParticleResolution.x * _ParticleResolution.y;
+    float scale = getScale(max_value);
+
+    _WeightTexture[id] = (float4)(_IntWeight[index] / scale);
+    _TempVelocityTexture[id] = (float4)(_IntTempVelocity[index] / scale);
 }

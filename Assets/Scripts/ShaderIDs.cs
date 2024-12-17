@@ -24,7 +24,7 @@ public class ShaderIDs
     public static readonly int ParticlePositionTextureTemp = Shader.PropertyToID("_ParticlePositionTextureTemp");
     public static readonly int ParticleRandomTexture = Shader.PropertyToID("_ParticleRandomTexture");
     public static readonly int FrameNumber = Shader.PropertyToID("_FrameNumber");
-    public static readonly int ZOffset = Shader.PropertyToID("_ZOffset");
+    public static readonly int Offset = Shader.PropertyToID("_Offset");
     public static readonly int MarkerTexture = Shader.PropertyToID("_MarkerTexture");
     public static readonly int MaxDensity = Shader.PropertyToID("_MaxDensity");
     public static readonly int DivergenceTexture = Shader.PropertyToID("_DivergenceTexture");
