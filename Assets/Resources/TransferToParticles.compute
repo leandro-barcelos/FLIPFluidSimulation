@@ -36,14 +36,6 @@ float3 sampleVelocity(Texture3D<float4> _texture, float3 position)
     return float3(sampleXVelocity(_texture, position), sampleYVelocity(_texture, position), sampleZVelocity(_texture, position));
 }
 
-float h(float r) {
-    return (r >= 0.0 && r <= 1.0) ? (1.0 - r) : ((r >= -1.0 && r <= 0.0) ? (1.0 + r) : 0.0);
-}
-
-float k(float3 v) {
-    return h(v.x) * h(v.y) * h(v.z);
-}
-
 [numthreads(NUM_THREADS, NUM_THREADS, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID) {
     if ((int)id.x >= _ParticleResolution.x || (int)id.y >= _ParticleResolution.y) return;
@@ -53,20 +45,12 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
 
     float3 gridPos = (particlePos / _GridSize) * _GridResolution;
 
-    float3 gridCell = floor(gridPos);
-
-    float3 xPosition = gridCell - float3(0.0, 0.5, 0.5);
-    float xWeight = k(gridPos - xPosition);
-
-    float3 yPosition = gridCell - float3(0.5, 0.0, 0.5);
-    float yWeight = k(gridPos - yPosition);
-
-    float3 zPosition = gridCell - float3(0.5, 0.5, 0.0);    
-    float zWeight = k(gridPos - zPosition);
-
     float3 currentVelocity = sampleVelocity(_VelocityTexture, gridPos);
+    float3 originalVelocity = sampleVelocity(_OriginalVelocityTexture, gridPos);
 
-    float3 flipVelocity = float3(xWeight, yWeight, zWeight) * currentVelocity / (xWeight + yWeight + zWeight);
+    float3 velocityChange = currentVelocity - originalVelocity;
+
+    float3 flipVelocity = particleVelocity + velocityChange;
     float3 picVelocity = currentVelocity;
 
     _ParticleVelocityTextureTemp[id.xy] = float4(lerp(picVelocity, flipVelocity, _Flipness), 0.0);
