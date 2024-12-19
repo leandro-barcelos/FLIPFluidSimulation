@@ -44,23 +44,22 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 {
     if ((int)id.x >= _ParticleResolution.x || (int)id.y >= _ParticleResolution.y) return;
 
-    float3 position = _ParticlePositionTexture[id.xy].xyz;
-    float3 gridPosition = (position / _GridSize) * _GridResolution;
+    float3 particlePos = _ParticlePositionTexture[id.xy].xyz;
+    float3 gridPos = (particlePos / _GridSize) * _GridResolution;
+
     float3 randomDirection = _ParticleRandomTexture[(id.xy + _FrameNumber) % _ParticleResolution].xyz;
 
-    float3 cellIndex = floor(gridPosition);
+    float3 velocity = sampleVelocity(gridPos);
 
-    float3 velocity = sampleVelocity(cellIndex);
-
-    float3 halfwayPosition = position + velocity * _TimeStep * 0.5;
-    gridPosition = (halfwayPosition / _GridSize) * _GridResolution;
-    float3 halfwayVelocity = sampleVelocity(floor(gridPosition));
+    float3 halfwayPosition = particlePos + _TimeStep * 0.5 * velocity;
+    float3 halfwayGridPos = halfwayPosition / _GridSize * _GridResolution;
+    float3 halfwayVelocity = sampleVelocity(halfwayGridPos);
 
     float3 step = halfwayVelocity * _TimeStep;
 
-    step += 0.05 * randomDirection * length(velocity) * _TimeStep;
+    step += 0.05 * length(velocity) * _TimeStep * randomDirection;
 
-    float3 newPosition = position + step;
+    float3 newPosition = particlePos + step;
     newPosition = clamp(newPosition, 0.01, _GridSize - 0.01);
 
     _ParticlePositionTextureTemp[id.xy] = float4(newPosition, 0.0);
