@@ -67,7 +67,7 @@ public class Parti : MonoBehaviour
         var desiredParticleCount = GetParticleCount();
 
         var particlesWidth = 512;
-        var particlesHeight = Mathf.CeilToInt(desiredParticleCount / particlesWidth);
+        var particlesHeight = Mathf.CeilToInt((float)desiredParticleCount / particlesWidth);
 
         var particleCount = particlesWidth * particlesHeight;
 
