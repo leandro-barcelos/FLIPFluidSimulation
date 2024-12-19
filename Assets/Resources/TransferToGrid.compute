@@ -44,6 +44,9 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
     float3 gridCell = floor(gridPos);
     gridCell += _Offset;
 
+    if (any(gridCell >= _GridResolution) || any(gridCell < 0)) 
+        return;
+
     float3 xPosition = gridCell + float3(0.0, 0.5, 0.5);
     float xWeight = k(gridPos - xPosition);
 
