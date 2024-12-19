@@ -414,8 +414,6 @@ public class Simulator
         advectShader.SetFloat(ShaderIDs.TimeStep, timeStep);
 
         // Set textures
-        particlePositionTextureTemp.Release();
-        particlePositionTextureTemp = CreateRenderTexture2D(particlesWidth, particlesHeight, RenderTextureFormat.ARGBFloat);
         advectShader.SetTexture(0, ShaderIDs.ParticlePositionTextureTemp, particlePositionTextureTemp);
         advectShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
         advectShader.SetTexture(0, ShaderIDs.ParticleRandomTexture, particleRandomTexture);
@@ -486,8 +484,6 @@ public class Simulator
         divergenceShader.SetFloat(ShaderIDs.MaxDensity, particleDensity);
 
         // Set textures
-        divergenceTexture.Release();
-        divergenceTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.RFloat);
         divergenceShader.SetTexture(0, ShaderIDs.DivergenceTexture, divergenceTexture);
         divergenceShader.SetTexture(0, ShaderIDs.VelocityTexture, velocityTexture);
         divergenceShader.SetTexture(0, ShaderIDs.MarkerTexture, markerTexture);
@@ -508,7 +504,6 @@ public class Simulator
 
         // Set textures
         pressureTexture.Release();
-        pressureTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.RFloat);
         jacobiShader.SetTexture(0, ShaderIDs.MarkerTexture, markerTexture);
         jacobiShader.SetTexture(0, ShaderIDs.DivergenceTexture, divergenceTexture);
 
