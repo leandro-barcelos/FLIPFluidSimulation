@@ -17,20 +17,17 @@ float _Flipness;
 
 // Helper functions
 float sampleXVelocity(Texture3D<float4> _texture, float3 position) {
-    float3 gridPos = position + float3(0.0, -0.5, -0.5);
-    float3 gridCell = floor(gridPos);
+    float3 gridCell = clamp(floor(position + float3(0.0, -0.5, -0.5)), 0.0, _GridResolution);
     return _texture[gridCell].x;
 }
 
 float sampleYVelocity(Texture3D<float4> _texture, float3 position) {
-    float3 gridPos = position + float3(-0.5, 0.0, -0.5);
-    float3 gridCell = floor(gridPos);
+    float3 gridCell = clamp(floor(position + float3(-0.5, 0.0, -0.5)), 0.0, _GridResolution);
     return _texture[gridCell].y;
 }
 
 float sampleZVelocity(Texture3D<float4> _texture, float3 position) {
-    float3 gridPos = position + float3(-0.5, -0.5, 0.0);
-    float3 gridCell = floor(gridPos);
+    float3 gridCell = clamp(floor(position + float3(-0.5, -0.5, 0.0)), 0.0, _GridResolution);
     return _texture[gridCell].z;
 }
 

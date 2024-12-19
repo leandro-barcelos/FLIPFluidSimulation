@@ -17,18 +17,18 @@ int _FrameNumber;
 
 // Helper functions
 float sampleXVelocity(float3 position) {
-    float3 cellIndex = position + float3(0.0, -0.5, -0.5);
-    return _VelocityTexture[cellIndex].x;
+    float3 gridCell = clamp(floor(position + float3(0.0, -0.5, -0.5)), 0.0, _GridResolution);
+    return _VelocityTexture[gridCell].x;
 }
 
 float sampleYVelocity(float3 position) {
-    float3 cellIndex = position + float3(-0.5, 0.0, -0.5);
-    return _VelocityTexture[cellIndex].y;
+    float3 gridCell = clamp(floor(position + float3(-0.5, 0.0, -0.5)), 0.0, _GridResolution);
+    return _VelocityTexture[gridCell].y;
 }
 
 float sampleZVelocity(float3 position) {
-    float3 cellIndex = position + float3(-0.5, -0.5, 0.0);
-    return _VelocityTexture[cellIndex].z;
+    float3 gridCell = clamp(floor(position + float3(-0.5, -0.5, 0.0)), 0.0, _GridResolution);
+    return _VelocityTexture[gridCell].z;
 }
 
 float3 sampleVelocity(float3 position)
