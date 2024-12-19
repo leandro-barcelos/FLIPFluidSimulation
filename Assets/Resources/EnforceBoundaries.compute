@@ -16,22 +16,22 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
     float3 velocity = _VelocityTexture[id.xyz].xyz;
 
     if ((float)id.x < 0.5)
-        velocity.x = 0.0;
+        velocity.x = max(velocity.x, 0.0);
 
     if ((float)id.x > _GridResolution.x - 0.5)
-        velocity.x = 0.0;
+        velocity.x = min(velocity.x, 0.0);;
 
     if ((float)id.y < 0.5)
-        velocity.y = 0.0;
+        velocity.y = max(velocity.y, 0.0);
 
     if ((float)id.y > _GridResolution.y - 0.5)
         velocity.y = min(velocity.y, 0.0);
 
     if ((float)id.z < 0.5)
-        velocity.z = 0.0;
+        velocity.z = max(velocity.z, 0.0);
 
     if ((float)id.z > _GridResolution.z - 0.5)
-        velocity.z = 0.0;
+        velocity.z = min(velocity.z, 0.0);
     
     _TempVelocityTexture[id] = float4(velocity, 0.0);
 }
