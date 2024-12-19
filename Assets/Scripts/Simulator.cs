@@ -38,7 +38,7 @@ public class Simulator
 
     public RenderTexture markerTexture, divergenceTexture, pressureTexture, tempSimulationTexture;
 
-    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader, transferToParticlesShader, updateMeshPropertiesShader, advectShader, copyShader, markShader, enforceBoundariesShader, divergenceShader, jacobiShader;
+    ComputeShader transferToGridShader, normalizeGridShader, addForcesShader, transferToParticlesShader, updateMeshPropertiesShader, advectShader, copyShader, markShader, enforceBoundariesShader, divergenceShader, jacobiShader, subtractShader;
 
     #region Initializations
 
@@ -111,6 +111,7 @@ public class Simulator
         enforceBoundariesShader = Resources.Load<ComputeShader>("EnforceBoundaries");
         divergenceShader = Resources.Load<ComputeShader>("Divergence");
         jacobiShader = Resources.Load<ComputeShader>("Jacobi");
+        subtractShader = Resources.Load<ComputeShader>("Subtract");
     }
 
     private void InitializeSimulationTextures()
@@ -248,7 +249,7 @@ public class Simulator
         EnforceBoundaries();
         Divergence();
         Jacobi();
-        // TODO: subtract pressure from velocity
+        Subtract();
         TransferToParticles();
         Advect(timeStep);
         UpdateMeshProperties(_particleMeshPropertiesBuffer, _cellMeshPropertiesBuffer);
@@ -526,6 +527,24 @@ public class Simulator
 
             Swap(ref tempSimulationTexture, ref pressureTexture);
         }
+    }
+
+    private void Subtract()
+    {
+        // Set shader parameters
+        subtractShader.SetVector(ShaderIDs.GridResolution, gridResolution);
+        subtractShader.SetVector(ShaderIDs.InvGridResolution, invGridResolution);
+
+        // Set textures
+        subtractShader.SetTexture(0, ShaderIDs.PressureTexture, pressureTexture);
+        subtractShader.SetTexture(0, ShaderIDs.VelocityTexture, velocityTexture);
+        subtractShader.SetTexture(0, ShaderIDs.TempVelocityTexture, tempVelocityTexture);
+
+        // Dispatch the compute shader
+        int threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);
+        int threadGroupsY = Mathf.CeilToInt((float)gridResolutionY / NumThreads);
+        int threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
+        subtractShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
     }
 
     #endregion
