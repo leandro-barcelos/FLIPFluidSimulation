@@ -323,9 +323,9 @@ public class Simulator
         normalizeGridShader.SetTexture(0, ShaderIDs.WeightTexture, weightTexture);
 
         // Dispatch the compute shader
-        int threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);
-        int threadGroupsY = Mathf.CeilToInt((float)gridResolutionY / NumThreads);
-        int threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
+        int threadGroupsX = Mathf.CeilToInt((float)(gridResolutionX + 1) / NumThreads);
+        int threadGroupsY = Mathf.CeilToInt((float)(gridResolutionY + 1) / NumThreads);
+        int threadGroupsZ = Mathf.CeilToInt((float)(gridResolutionZ + 1) / NumThreads);
         normalizeGridShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
     }
 
@@ -345,9 +345,9 @@ public class Simulator
         addForcesShader.SetTexture(0, ShaderIDs.VelocityTexture, velocityTexture);
 
         // Dispatch the compute shader
-        int threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);
-        int threadGroupsY = Mathf.CeilToInt((float)gridResolutionY / NumThreads);
-        int threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
+        int threadGroupsX = Mathf.CeilToInt((float)(gridResolutionX + 1) / NumThreads);
+        int threadGroupsY = Mathf.CeilToInt((float)(gridResolutionY + 1) / NumThreads);
+        int threadGroupsZ = Mathf.CeilToInt((float)(gridResolutionZ + 1) / NumThreads);
         addForcesShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
 
         Swap(ref velocityTexture, ref tempVelocityTexture);
@@ -436,9 +436,9 @@ public class Simulator
         copyShader.SetTexture(0, ShaderIDs.OriginalVelocityTexture, originalVelocityTexture);
 
         // Dispatch the compute shader
-        int threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);
-        int threadGroupsY = Mathf.CeilToInt((float)gridResolutionY / NumThreads);
-        int threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
+        int threadGroupsX = Mathf.CeilToInt((float)(gridResolutionX + 1) / NumThreads);
+        int threadGroupsY = Mathf.CeilToInt((float)(gridResolutionY + 1) / NumThreads);
+        int threadGroupsZ = Mathf.CeilToInt((float)(gridResolutionZ + 1) / NumThreads);
         copyShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
     }
 
@@ -471,9 +471,9 @@ public class Simulator
         enforceBoundariesShader.SetTexture(0, ShaderIDs.VelocityTexture, velocityTexture);
 
         // Dispatch the compute shader
-        int threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);
-        int threadGroupsY = Mathf.CeilToInt((float)gridResolutionY / NumThreads);
-        int threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
+        int threadGroupsX = Mathf.CeilToInt((float)(gridResolutionX + 1) / NumThreads);
+        int threadGroupsY = Mathf.CeilToInt((float)(gridResolutionY + 1) / NumThreads);
+        int threadGroupsZ = Mathf.CeilToInt((float)(gridResolutionZ + 1) / NumThreads);
         enforceBoundariesShader.Dispatch(0, threadGroupsX, threadGroupsY, threadGroupsZ);
 
         Swap(ref velocityTexture, ref tempVelocityTexture);

@@ -12,7 +12,7 @@ float3 _GridResolution;
 
 [numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
 void CSMain(uint3 id : SV_DispatchThreadID) {
-    if ((int)id.x >= _GridResolution.x || (int)id.y >= _GridResolution.y || (int)id.z >= _GridResolution.z) return;
+    if ((int)id.x >= _GridResolution.x + 1 || (int)id.y >= _GridResolution.y + 1 || (int)id.z >= _GridResolution.z + 1) return;
 
     float3 accumulatedVelocity = _TempVelocityTexture[id.xyz].xyz;
     float3 weight = _WeightTexture[id.xyz].xyz;
