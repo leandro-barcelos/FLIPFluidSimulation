@@ -3,8 +3,14 @@
 #pragma kernel CSMain
 
 // Textures
-Texture3D<float4> _TempVelocityTexture;
-Texture3D<float4> _WeightTexture;
+Texture3D<float> _WeightTextureX;
+Texture3D<float> _WeightTextureY;
+Texture3D<float> _WeightTextureZ;
+
+Texture3D<float> _TempVelocityTextureX;
+Texture3D<float> _TempVelocityTextureY;
+Texture3D<float> _TempVelocityTextureZ;
+
 RWTexture3D<float4> _VelocityTexture;
 
 // Constants
@@ -14,8 +20,8 @@ float3 _GridResolution;
 void CSMain(uint3 id : SV_DispatchThreadID) {
     if ((int)id.x >= _GridResolution.x + 1 || (int)id.y >= _GridResolution.y + 1 || (int)id.z >= _GridResolution.z + 1) return;
 
-    float3 accumulatedVelocity = _TempVelocityTexture[id.xyz].xyz;
-    float3 weight = _WeightTexture[id.xyz].xyz;
+    float3 accumulatedVelocity = float3(_TempVelocityTextureX[id], _TempVelocityTextureY[id], _TempVelocityTextureZ[id]);
+    float3 weight = float3(_WeightTextureX[id], _WeightTextureY[id], _WeightTextureZ[id]);
 
     float xVelocity = 0.0;
     if (weight.x > 0.0)

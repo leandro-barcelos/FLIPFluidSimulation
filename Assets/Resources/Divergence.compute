@@ -3,7 +3,7 @@
 #pragma enable_d3d11_debug_symbols
 
 // Buffers
-Texture3D<float4> _WeightTexture;
+Texture3D<float> _WeightTextureScalar;
 Texture3D<float4> _VelocityTexture;
 Texture3D<int> _MarkerTexture;
 RWTexture3D<float> _DivergenceTexture;
@@ -39,7 +39,7 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
 
     float divergence = ((rightX - leftX) + (topY - bottomY) + (frontZ - backZ));
 
-    float density = _WeightTexture[id].a;
+    float density = _WeightTextureScalar[id];
     divergence -= max((density - _MaxDensity) * 1.0, 0.0);
 
     _DivergenceTexture[id] = divergence;

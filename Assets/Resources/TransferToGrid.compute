@@ -5,10 +5,15 @@
 // Textures
 Texture2D<float4> _ParticlePositionTexture;
 Texture2D<float4> _ParticleVelocityTexture;
-RWStructuredBuffer<int4> _IntWeight;
-RWStructuredBuffer<int4> _IntTempVelocity;
-RWTexture3D<float4> _WeightTexture;
-RWTexture3D<float4> _TempVelocityTexture;
+
+RWTexture3D<uint> _WeightTextureX;
+RWTexture3D<uint> _WeightTextureY;
+RWTexture3D<uint> _WeightTextureZ;
+RWTexture3D<uint> _WeightTextureScalar;
+
+RWTexture3D<uint> _TempVelocityTextureX;
+RWTexture3D<uint> _TempVelocityTextureY;
+RWTexture3D<uint> _TempVelocityTextureZ;
 
 // Constants
 float3 _GridSize;
@@ -25,10 +30,22 @@ float k(float3 v) {
     return h(v.x) * h(v.y) * h(v.z);
 }
 
-float getScale(float max_value)
-{
-    int max_int = 2147483647;
-    return max_int / max_value;
+void atomicAdd(RWTexture3D<uint> _texture, uint3 index, float value) {
+    uint compareValue = _texture[index];
+    uint outValue = 0;
+
+    uint i_val = asuint(value + asfloat(_texture[index]));
+
+    [allow_uav_condition]
+    while (true)
+    {
+        InterlockedCompareExchange(_texture[index], compareValue, i_val, outValue);
+        if (outValue == compareValue)
+            break;
+
+        compareValue = outValue;
+        i_val = asuint(value + asfloat(outValue));
+    }
 }
 
 [numthreads(NUM_THREADS, NUM_THREADS, 1)]
@@ -59,34 +76,12 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
     float3 scalarPosition = gridCell + float3(0.5, 0.5, 0.5);
     float scalarWeight = k(gridPos - scalarPosition);
 
-    int index = gridCell.x * _GridResolution.y * _GridResolution.z + gridCell.y * _GridResolution.z + gridCell.z;
-    float4 weight = float4(xWeight, yWeight, zWeight, scalarWeight);
-    float4 velocity = float4(particleVel, 0.0) * weight;
-    float max_value = _ParticleResolution.x * _ParticleResolution.y;
-    float scale = getScale(max_value);
-    int4 qWeight = round(weight * scale);
-    int4 qVelocity = round(velocity * scale);
-    InterlockedAdd(_IntTempVelocity[index].x, qVelocity.x);
-    InterlockedAdd(_IntTempVelocity[index].y, qVelocity.y);
-    InterlockedAdd(_IntTempVelocity[index].z, qVelocity.z);
-    InterlockedAdd(_IntWeight[index].r, qWeight.r);
-    InterlockedAdd(_IntWeight[index].g, qWeight.g);
-    InterlockedAdd(_IntWeight[index].b, qWeight.b);
-    InterlockedAdd(_IntWeight[index].a, qWeight.a);
-}
+    atomicAdd(_WeightTextureX, gridCell, xWeight);
+    atomicAdd(_WeightTextureY, gridCell, yWeight);
+    atomicAdd(_WeightTextureZ, gridCell, zWeight);
+    atomicAdd(_WeightTextureScalar, gridCell, scalarWeight);
 
-#pragma kernel BufferToTexture
-
-[numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
-void BufferToTexture(uint3 id : SV_DispatchThreadID){
-    if ((int)id.x >= _GridResolution.x || (int)id.g >= _GridResolution.y || (int)id.z >= _GridResolution.z) 
-        return;
-
-    int index = id.x * _GridResolution.y * _GridResolution.z + id.y * _GridResolution.z + id.z;
-
-    float max_value = _ParticleResolution.x * _ParticleResolution.y;
-    float scale = getScale(max_value);
-
-    _WeightTexture[id] = (float4)(_IntWeight[index] / scale);
-    _TempVelocityTexture[id] = (float4)(_IntTempVelocity[index] / scale);
+    atomicAdd(_TempVelocityTextureX, gridCell, particleVel.x * xWeight);
+    atomicAdd(_TempVelocityTextureY, gridCell, particleVel.y * yWeight);
+    atomicAdd(_TempVelocityTextureZ, gridCell, particleVel.z * zWeight);
 }

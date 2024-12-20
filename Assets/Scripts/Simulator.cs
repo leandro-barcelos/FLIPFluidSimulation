@@ -32,7 +32,9 @@ public class Simulator
     public RenderTexture particleRandomTexture;
 
     // Simulation Textures
-    public RenderTexture velocityTexture, tempVelocityTexture, originalVelocityTexture, weightTexture;
+    public RenderTexture velocityTexture, tempVelocityTexture, originalVelocityTexture;
+    public RenderTexture tempVelocityTextureX, tempVelocityTextureY, tempVelocityTextureZ;
+    public RenderTexture weightTextureX, weightTextureY, weightTextureZ, weightTextureScalar;
 
     public RenderTexture markerTexture, divergenceTexture, pressureTexture, tempSimulationTexture;
 
@@ -83,8 +85,14 @@ public class Simulator
 
         velocityTexture.Release();
         tempVelocityTexture.Release();
+        tempVelocityTextureX.Release();
+        tempVelocityTextureY.Release();
+        tempVelocityTextureZ.Release();
         originalVelocityTexture.Release();
-        weightTexture.Release();
+        weightTextureX.Release();
+        weightTextureY.Release();
+        weightTextureZ.Release();
+        weightTextureScalar.Release();
 
         markerTexture.Release();
         divergenceTexture.Release();
@@ -115,9 +123,16 @@ public class Simulator
 
         tempVelocityTexture = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.ARGBHalf);
 
+        tempVelocityTextureX = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.RFloat);
+        tempVelocityTextureY = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.RFloat);
+        tempVelocityTextureZ = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.RFloat);
+
         originalVelocityTexture = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.ARGBHalf);
 
-        weightTexture = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.ARGBHalf);
+        weightTextureX = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.RFloat);
+        weightTextureY = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.RFloat);
+        weightTextureZ = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.RFloat);
+        weightTextureScalar = CreateRenderTexture3D(gridResolutionX + 1, gridResolutionY + 1, gridResolutionZ + 1, RenderTextureFormat.RFloat);
 
         markerTexture = CreateRenderTexture3D(gridResolutionX, gridResolutionY, gridResolutionZ, RenderTextureFormat.RInt);
 
@@ -233,21 +248,18 @@ public class Simulator
 
     private void TransferToGrid()
     {
-        int4[] init = new int4[gridResolutionX * gridResolutionY * gridResolutionZ];
-        ComputeBuffer intWeightBuffer = new(gridResolutionX * gridResolutionY * gridResolutionZ, sizeof(int) * 4);
-        intWeightBuffer.SetData(init);
-
-        ComputeBuffer intTempVelocityBuffer = new(gridResolutionX * gridResolutionY * gridResolutionZ, sizeof(int) * 4);
-        intTempVelocityBuffer.SetData(init);
+        weightTextureX.Release();
+        weightTextureY.Release();
+        weightTextureZ.Release();
+        weightTextureScalar.Release();
+        tempVelocityTextureX.Release();
+        tempVelocityTextureY.Release();
+        tempVelocityTextureZ.Release();
 
         // Set shader parameters
         transferToGridShader.SetVector(ShaderIDs.GridResolution, gridResolution);
         transferToGridShader.SetVector(ShaderIDs.GridSize, gridSize);
         transferToGridShader.SetVector(ShaderIDs.ParticleResolution, particleResolution);
-
-        int threadGroupsX;
-        int threadGroupsY;
-        int threadGroupsZ;
 
         var splatDepth = 3;
         for (int x = -(splatDepth - 1) / 2; x <= (splatDepth - 1) / 2; ++x)
@@ -261,31 +273,21 @@ public class Simulator
                     // Set textures
                     transferToGridShader.SetTexture(0, ShaderIDs.ParticlePositionTexture, particlePositionTexture);
                     transferToGridShader.SetTexture(0, ShaderIDs.ParticleVelocityTexture, particleVelocityTexture);
-
-                    transferToGridShader.SetBuffer(0, "_IntWeight", intWeightBuffer);
-                    transferToGridShader.SetBuffer(0, "_IntTempVelocity", intTempVelocityBuffer);
+                    transferToGridShader.SetTexture(0, ShaderIDs.WeightTextureX, weightTextureX);
+                    transferToGridShader.SetTexture(0, ShaderIDs.WeightTextureY, weightTextureY);
+                    transferToGridShader.SetTexture(0, ShaderIDs.WeightTextureZ, weightTextureZ);
+                    transferToGridShader.SetTexture(0, ShaderIDs.WeightTextureScalar, weightTextureScalar);
+                    transferToGridShader.SetTexture(0, ShaderIDs.TempVelocityTextureX, tempVelocityTextureX);
+                    transferToGridShader.SetTexture(0, ShaderIDs.TempVelocityTextureY, tempVelocityTextureY);
+                    transferToGridShader.SetTexture(0, ShaderIDs.TempVelocityTextureZ, tempVelocityTextureZ);
 
                     // Dispatch the compute shader
-                    threadGroupsX = Mathf.CeilToInt((float)particlesWidth / NumThreads);
-                    threadGroupsY = Mathf.CeilToInt((float)particlesHeight / NumThreads);
+                    int threadGroupsX = Mathf.CeilToInt((float)particlesWidth / NumThreads);
+                    int threadGroupsY = Mathf.CeilToInt((float)particlesHeight / NumThreads);
                     transferToGridShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
                 }
             }
         }
-
-        transferToGridShader.SetTexture(1, ShaderIDs.WeightTexture, weightTexture);
-        transferToGridShader.SetTexture(1, ShaderIDs.TempVelocityTexture, tempVelocityTexture);
-
-        transferToGridShader.SetBuffer(1, "_IntWeight", intWeightBuffer);
-        transferToGridShader.SetBuffer(1, "_IntTempVelocity", intTempVelocityBuffer);
-
-        threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);
-        threadGroupsY = Mathf.CeilToInt((float)gridResolutionY / NumThreads);
-        threadGroupsZ = Mathf.CeilToInt((float)gridResolutionZ / NumThreads);
-        transferToGridShader.Dispatch(1, threadGroupsX, threadGroupsY, threadGroupsZ);
-
-        intWeightBuffer.Release();
-        intTempVelocityBuffer.Release();
     }
 
     private void NormalizeGrid()
@@ -294,9 +296,13 @@ public class Simulator
         normalizeGridShader.SetVector(ShaderIDs.GridResolution, gridResolution);
 
         // Set textures
-        normalizeGridShader.SetTexture(0, ShaderIDs.TempVelocityTexture, tempVelocityTexture);
+        normalizeGridShader.SetTexture(0, ShaderIDs.WeightTextureX, weightTextureX);
+        normalizeGridShader.SetTexture(0, ShaderIDs.WeightTextureY, weightTextureY);
+        normalizeGridShader.SetTexture(0, ShaderIDs.WeightTextureZ, weightTextureZ);
+        normalizeGridShader.SetTexture(0, ShaderIDs.TempVelocityTextureX, tempVelocityTextureX);
+        normalizeGridShader.SetTexture(0, ShaderIDs.TempVelocityTextureY, tempVelocityTextureY);
+        normalizeGridShader.SetTexture(0, ShaderIDs.TempVelocityTextureZ, tempVelocityTextureZ);
         normalizeGridShader.SetTexture(0, ShaderIDs.VelocityTexture, velocityTexture);
-        normalizeGridShader.SetTexture(0, ShaderIDs.WeightTexture, weightTexture);
 
         // Dispatch the compute shader
         int threadGroupsX = Mathf.CeilToInt((float)(gridResolutionX + 1) / NumThreads);
@@ -463,7 +469,7 @@ public class Simulator
         divergenceShader.SetTexture(0, ShaderIDs.DivergenceTexture, divergenceTexture);
         divergenceShader.SetTexture(0, ShaderIDs.VelocityTexture, velocityTexture);
         divergenceShader.SetTexture(0, ShaderIDs.MarkerTexture, markerTexture);
-        divergenceShader.SetTexture(0, ShaderIDs.WeightTexture, weightTexture);
+        divergenceShader.SetTexture(0, ShaderIDs.WeightTextureScalar, weightTextureScalar);
 
         // Dispatch the compute shader
         int threadGroupsX = Mathf.CeilToInt((float)gridResolutionX / NumThreads);

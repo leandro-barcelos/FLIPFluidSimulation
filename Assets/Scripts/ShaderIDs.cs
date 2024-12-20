@@ -11,8 +11,14 @@ public class ShaderIDs
     public static readonly int ParticleVelocityTexture = Shader.PropertyToID("_ParticleVelocityTexture");
     public static readonly int InvGridResolution = Shader.PropertyToID("_InvGridResolution");
     public static readonly int TempVelocityTexture = Shader.PropertyToID("_TempVelocityTexture");
+    public static readonly int TempVelocityTextureX = Shader.PropertyToID("_TempVelocityTextureX");
+    public static readonly int TempVelocityTextureY = Shader.PropertyToID("_TempVelocityTextureY");
+    public static readonly int TempVelocityTextureZ = Shader.PropertyToID("_TempVelocityTextureZ");
     public static readonly int VelocityTexture = Shader.PropertyToID("_VelocityTexture");
-    public static readonly int WeightTexture = Shader.PropertyToID("_WeightTexture");
+    public static readonly int WeightTextureX = Shader.PropertyToID("_WeightTextureX");
+    public static readonly int WeightTextureY = Shader.PropertyToID("_WeightTextureY");
+    public static readonly int WeightTextureZ = Shader.PropertyToID("_WeightTextureZ");
+    public static readonly int WeightTextureScalar = Shader.PropertyToID("_WeightTextureScalar");
     public static readonly int MouseVelocity = Shader.PropertyToID("_MouseVelocity");
     public static readonly int MouseRayOrigin = Shader.PropertyToID("_MouseRayOrigin");
     public static readonly int MouseRayDirection = Shader.PropertyToID("_MouseRayDirection");
