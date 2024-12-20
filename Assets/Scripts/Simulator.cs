@@ -25,8 +25,6 @@ public class Simulator
     public int frameNumber = 0;
 
     // Objects
-    public ComputeBuffer quadVertexBuffer, particleVertexBuffer;
-
     public RenderTexture particlePositionTexture, particlePositionTextureTemp;
 
     public RenderTexture particleVelocityTexture, particleVelocityTextureTemp;
@@ -69,16 +67,12 @@ public class Simulator
 
         this.particleDensity = particleDensity;
 
-        InitializeBuffers();
         InitializeParticleTextures(particlePositions);
         InitializeSimulationTextures();
     }
 
     ~Simulator()
     {
-        quadVertexBuffer.Release();
-        particleVertexBuffer.Release();
-
         particlePositionTexture.Release();
         particlePositionTextureTemp.Release();
 
@@ -171,24 +165,6 @@ public class Simulator
         Texture2D particleRandomsTexture2D = CreateTexture2D(particlesWidth, particlesHeight, particleRandoms);
         particleRandomTexture = CreateRenderTexture2D(particlesWidth, particlesHeight, RenderTextureFormat.ARGBFloat);
         Graphics.Blit(particleRandomsTexture2D, particleRandomTexture);
-    }
-
-    private void InitializeBuffers()
-    {
-        quadVertexBuffer = new ComputeBuffer(8, sizeof(float));
-        float[] quadVertex = new float[] { -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f };
-        quadVertexBuffer.SetData(quadVertex);
-
-        particleVertexBuffer = new ComputeBuffer(particlesHeight * particlesWidth, sizeof(float) * 2);
-        Vector2[] particleTextureCoordinates = new Vector2[particlesWidth * particlesHeight];
-        for (var y = 0; y < particlesHeight; y++)
-        {
-            for (var x = 0; x < particlesWidth; x++)
-            {
-                particleTextureCoordinates[y * particlesWidth + x] = new((x + 0.5f) / particlesWidth, (y + 0.5f) / particlesHeight);
-            }
-        }
-        particleVertexBuffer.SetData(particleTextureCoordinates);
     }
 
     #endregion
